@@ -206,6 +206,41 @@ split-board validate --spec S001
 - Runs the full validation suite against the board (useful for checking boards that were created before this tool existed or after manual recovery from git)
 - Reports all violations, not just the first
 
+### Dashboard
+
+```
+split-board dashboard
+split-board dashboard --spec S001
+```
+
+A live terminal UI that watches `board.yaml` and `log.md` for changes and auto-refreshes. Everything in one view, top to bottom:
+
+1. **Header** — spec ID, title, complexity. When multiple specs are active, a tab bar showing all specs with the focused one highlighted. Press `s` to cycle.
+2. **Kanban board** — four columns (backlog, active, pending approval, done) with ticket cards showing ID, persona, title, and token count. For complex specs, each milestone gets its own row of columns with a milestone header showing title and progress (e.g., `[3/4 done]`). Blocked milestones are dimmed.
+3. **Activity feed** — tail of `log.md`, most recent entries at the top. Shows dispatches, completions, QA findings, decisions, follow-up creation. New entries highlight briefly on arrival.
+4. **Metrics bar** — single line: tickets done/total, milestones done/total, dispatches, follow-ups, questions, total tokens, elapsed time, time since last activity.
+
+**Behavior:**
+- Read-only monitoring — no actions from the dashboard, all mutations go through CLI commands in another terminal
+- Polls `board.yaml` and `log.md` modification times at ~1 second intervals
+- Resizes dynamically with the terminal window
+- When `--spec` is omitted and one spec is active, shows that spec. When multiple are active, defaults to the most recently modified.
+
+**Keyboard:**
+- `s` — cycle focused spec (multi-spec only)
+- `q` — quit
+
+**Color scheme:**
+- Backlog: dim/grey
+- Active: bright white
+- Pending approval: yellow with "NEEDS YOU" label
+- Done: green
+- Failed/skipped: red
+- Activity personas: consistent per-persona color mapping
+- Metrics values: bold
+
+**Implementation:** Python `curses` (stdlib). No external dependencies. See `docs/superpowers/specs/2026-04-11-dashboard-mockup.md` for ASCII mockups of all states (single-spec, multi-spec, medium complexity, pending approval).
+
 ### Persona Validation
 
 ```
