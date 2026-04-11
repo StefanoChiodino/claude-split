@@ -12,7 +12,7 @@ The Split orchestrator and personas produce YAML files (boards, tickets) that mu
 2. **LLM-friendly errors** — every error message names the exact constraint violated and suggests the command to fix it.
 3. **Self-documenting** — `--help` on any subcommand explains what it does, what's required, and what rules apply. Personas can also read the source to understand why something is failing.
 4. **Human-readable output** — YAML for all persisted state. Personas and humans can read board files directly for context.
-5. **Zero external dependencies** — Python stdlib plus PyYAML only.
+5. **Minimal dependencies** — The CLI tool uses Python stdlib plus PyYAML only, so agents can run it without installation. The dashboard is a separate script with its own dependencies (Textual), isolated via PEP 723 inline script metadata and `uv run`. Requires `uv` to be installed.
 
 ## ID Format
 
@@ -33,7 +33,8 @@ Each spec gets its own directory under `.claude/split/`. The directory name comb
 ├── active/
 │   ├── S001-rate-limiting/
 │   │   ├── spec.md               # The approved spec document
-│   │   ├── board.yaml            # Tickets, milestones, decisions, metrics
+│   │   ├── board.yaml            # Tickets, milestones, decisions
+│   │   ├── metrics.yaml          # Computed metrics (regenerated on every board write)
 │   │   ├── log.md                # Append-only execution log
 │   │   └── artifacts/            # Approach docs, review notes, etc.
 │   └── S002-auth-refactor/
@@ -46,6 +47,14 @@ Each spec gets its own directory under `.claude/split/`. The directory name comb
 The slug is generated at init time: lowercase the title, replace non-alphanumeric characters with hyphens, collapse consecutive hyphens, truncate to 40 characters.
 
 Multiple specs can be active simultaneously. When commands need to target a spec, `--spec` accepts either the full directory name (`S001-rate-limiting`) or just the ID (`S001`). When only one spec is active, `--spec` is optional and defaults to that spec.
+
+## Global Options
+
+```
+split-board --base-dir <path> <command>
+```
+
+- `--base-dir` defaults to `.claude/split` but can be overridden. All spec directories are resolved relative to this path.
 
 ## CLI Interface
 
@@ -94,7 +103,7 @@ split-board ticket add --title "Design approach" \
 ```
 
 - Auto-generates the next ticket ID within the board
-- Validates persona against available persona definitions
+- Validates `--persona` value (phase 1: accepts any string; later: validates against persona definitions)
 - If `--milestone` is provided, places the ticket in that milestone
 - If `--depends-on` is provided, validates that referenced tickets exist and that adding the dependency doesn't create a cycle
 - Sets initial status to `backlog` if no dependencies, `blocked` if dependencies exist
@@ -103,15 +112,23 @@ split-board ticket add --title "Design approach" \
 ```
 split-board ticket update --id T001 --status done --tokens-used 18200 --artifact artifacts/T001-approach.md
 split-board ticket update --id T002 --status in_progress
-split-board ticket update --id T003 --status failed
 ```
 
+Valid statuses: `backlog`, `blocked`, `in_progress`, `pending_approval`, `done`, `skipped`, `blocked_by_skip`
+
 Enforced invariants on status transitions:
-- `in_progress` — all dependencies must be `done`
-- `done` — requires `--tokens-used` (> 0) and at least one `--artifact` (either provided in this command or already present on the ticket)
-- `pending_approval` — same requirements as `done`, plus `requires_approval` must be `true` on the ticket
-- `failed` — records the current state; downstream tickets are not auto-updated (the orchestrator handles retry/reassign/skip)
-- `skipped` — downstream tickets depending solely on this ticket are marked `blocked_by_skip`
+
+- `backlog → in_progress` — all dependencies must be `done`
+- `in_progress → done` — requires `--tokens-used` (> 0) and at least one `--artifact` (either provided in this command or already present on the ticket)
+- `in_progress → pending_approval` — same requirements as `done`, plus `requires_approval` must be `true` on the ticket
+- `pending_approval → done` — approval granted
+- `in_progress → backlog` — retry/reassign (orchestrator can also change `--persona`)
+- `skipped` — any ticket can be skipped; downstream tickets depending solely on this ticket are marked `blocked_by_skip`
+
+Auto-transitions (computed by the CLI after every write):
+
+- When a ticket reaches `done`, tickets that `depend_on` it are re-evaluated. If all their deps are now `done`, they move from `blocked → backlog`.
+- Milestone "current" status is derived: the first milestone with incomplete tickets is current, all subsequent ones are not yet active.
 
 ```
 split-board ticket add-dependency --id T002 --depends-on T001
@@ -148,7 +165,6 @@ split-board milestone add --title "Integration & hardening"
 
 - Auto-generates the next milestone ID (M001, M002, ...)
 - Only valid when `complexity` is `complex`
-- New milestones are created with status `blocked`
 
 ```
 split-board milestone move-ticket --ticket T001 --milestone M001
@@ -157,10 +173,11 @@ split-board milestone move-ticket --ticket T001 --milestone M001
 - Moves a ticket from its current location to the specified milestone
 - Validates the milestone exists
 
-Milestone status is managed automatically:
-- The first milestone with incomplete tickets is `active`
-- All subsequent milestones are `blocked`
-- When all tickets in a milestone reach `done`, the next milestone becomes `active`
+Milestone statuses follow kanban style: `todo`, `in_progress`, `done`. Managed automatically by the CLI:
+
+- The first milestone with incomplete tickets is `in_progress`
+- Milestones before it (all tickets done) are `done`
+- Milestones after it are `todo`
 
 ### Decision Recording
 
@@ -171,12 +188,12 @@ split-board decision add --ticket T002 \
   --answer "Redis — we need this to work across multiple instances"
 ```
 
-- Appends to the board's `decisions` array
+- Appends to the ticket's `decisions` array (decisions live on the ticket they relate to)
 - Auto-timestamps
 
 ### Metrics
 
-Metrics are computed, not manually set. The tool recalculates the `metrics` block on every write operation:
+Metrics are computed, not manually set. They live in a separate `metrics.yaml` file alongside `board.yaml`. The tool regenerates `metrics.yaml` on every board write operation:
 
 - `started` — set once on `spec init`
 - `agent_dispatches` — count of tickets that have ever been `in_progress`
@@ -235,11 +252,27 @@ A live terminal UI that watches `board.yaml` and `log.md` for changes and auto-r
 - Active: bright white
 - Pending approval: yellow with "NEEDS YOU" label
 - Done: green
-- Failed/skipped: red
+- Skipped: red
 - Activity personas: consistent per-persona color mapping
 - Metrics values: bold
 
-**Implementation:** Python `curses` (stdlib). No external dependencies. See `docs/superpowers/specs/2026-04-11-dashboard-mockup.md` for ASCII mockups of all states (single-spec, multi-spec, medium complexity, pending approval).
+**Implementation:** The dashboard lives in a **separate script** (`tools/split_board_dashboard.py`) using [Textual](https://textual.textualize.io/) for the TUI framework. It declares its dependencies via PEP 723 inline script metadata:
+
+```python
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#   "textual>=1.0",
+#   "pyyaml>=6.0",
+# ]
+# ///
+```
+
+The user still runs `split-board dashboard` as documented above. The CLI command delegates transparently — it locates the dashboard script and runs it via `uv run`, which auto-creates an isolated cached venv on first use. If `uv` is not installed, the CLI exits with a clear error and install instructions.
+
+This separation means agents never need Textual — they only call `split_board.py` for board mutations. The dashboard is purely a human-facing visualization tool.
+
+See `docs/superpowers/specs/2026-04-11-dashboard-mockup.md` for ASCII mockups of all states (single-spec, multi-spec, medium complexity, pending approval).
 
 ### Persona Validation
 
@@ -313,7 +346,7 @@ All rules are enforced at mutation time. The `validate` command runs them all fo
 
 ### Referential Rules (cross-field)
 - Every `depends_on` entry references an existing ticket ID in the same board
-- Every `persona` value matches an available persona definition
+- Every `persona` value matches an available persona definition (deferred in phase 1)
 - Every `created_by` value references an existing ticket that lists this ticket in `follow_ups` (and vice versa)
 - Every ticket in a milestone references a milestone that exists
 
@@ -321,9 +354,9 @@ All rules are enforced at mutation time. The `validate` command runs them all fo
 - No circular dependencies
 - Completed tickets (`done`) have `tokens_used > 0` and at least one artifact
 - Tickets with unresolved dependencies cannot be `in_progress` or `done`
-- Only the first non-completed milestone can be `active`; subsequent ones are `blocked`
+- Only the first milestone with incomplete tickets can be `in_progress`; subsequent ones are `todo`
 - Follow-ups are limited to two levels deep (a follow-up's follow-up cannot spawn further follow-ups)
-- Computed metrics match actual board state
+- `metrics.yaml` values match actual board state
 
 ## Error Output Format
 
@@ -376,3 +409,16 @@ This tool covers board state management only. It does not:
 - Write spec documents (that's the SME persona)
 - Manage the retro process (that's the `/retro` skill)
 - Generate or modify persona markdown (that's human-authored or retro-proposed)
+
+## Phase 1 Build Scope
+
+The first implementation builds `tools/split_board.py` at the repo root. Deferred to later phases:
+
+- `persona validate/validate-all/list` commands — no persona files exist yet; `--persona` accepts any string
+- `guard` subcommand — needs plugin scaffolding and hook configuration
+- `dashboard` command and `tools/split_board_dashboard.py` — separate script with Textual dependency
+- Plugin directory structure (`settings.json`, `agents/`, `skills/`)
+
+### Testing
+
+pytest with temp directories. Tests call internal functions directly (not subprocess) for speed. A small number of smoke tests shell out to verify entry point wiring. Tests never touch `.claude/split/` in any project.
