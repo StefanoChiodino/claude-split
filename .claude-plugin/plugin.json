@@ -1,0 +1,16 @@
+{
+  "name": "split",
+  "description": "Turn a single AI session into a team of specialized personas coordinated by an LLM-powered orchestrator through a kanban board system",
+  "version": "0.1.0",
+  "author": {
+    "name": "Stefano Chiodino"
+  },
+  "license": "MIT",
+  "keywords": [
+    "orchestrator",
+    "personas",
+    "kanban",
+    "agents",
+    "team"
+  ]
+}
