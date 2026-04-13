@@ -14,9 +14,9 @@
 
 | File | Change | Responsibility |
 |---|---|---|
-| `split/tools/split_board/board.py` | Modify | Add `append_log` helper |
-| `split/tools/split_board/commands.py` | Modify | Call `append_log` in every mutating `cmd_*` handler, add `cmd_log` |
-| `split/tools/split_board/cli.py` | Modify | Add `log` subcommand parser |
+| `src/split_board/board.py` | Modify | Add `append_log` helper |
+| `src/split_board/commands.py` | Modify | Call `append_log` in every mutating `cmd_*` handler, add `cmd_log` |
+| `src/split_board/cli.py` | Modify | Add `log` subcommand parser |
 | `tests/test_split_board.py` | Modify | Add logging assertions to existing tests, add new log-specific tests |
 
 ---
@@ -24,7 +24,7 @@
 ### Task 1: Add `append_log` helper to `board.py`
 
 **Files:**
-- Modify: `split/tools/split_board/board.py:48-50` (after `now_iso`)
+- Modify: `src/split_board/board.py:48-50` (after `now_iso`)
 - Test: `tests/test_split_board.py`
 
 - [ ] **Step 1: Write the failing test**
@@ -63,7 +63,7 @@ Expected: FAIL — `ImportError: cannot import name 'append_log'`
 
 - [ ] **Step 3: Write minimal implementation**
 
-Add to `split/tools/split_board/board.py` after the `now_iso()` function (after line 50):
+Add to `src/split_board/board.py` after the `now_iso()` function (after line 50):
 
 ```python
 def append_log(spec_dir: Path, message: str) -> None:
@@ -80,7 +80,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add split/tools/split_board/board.py tests/test_split_board.py
+git add src/split_board/board.py tests/test_split_board.py
 git commit -m "Add append_log helper to board.py"
 ```
 
@@ -89,7 +89,7 @@ git commit -m "Add append_log helper to board.py"
 ### Task 2: Add logging to `spec init`
 
 **Files:**
-- Modify: `split/tools/split_board/commands.py:38-63` (`cmd_spec_init`)
+- Modify: `src/split_board/commands.py:38-63` (`cmd_spec_init`)
 - Test: `tests/test_split_board.py`
 
 - [ ] **Step 1: Write the failing test**
@@ -111,7 +111,7 @@ Expected: FAIL — log.md is empty
 
 - [ ] **Step 3: Implement**
 
-In `split/tools/split_board/commands.py`, add `append_log` to the import from `.board`:
+In `src/split_board/commands.py`, add `append_log` to the import from `.board`:
 
 ```python
 from .board import (
@@ -140,7 +140,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add split/tools/split_board/commands.py tests/test_split_board.py
+git add src/split_board/commands.py tests/test_split_board.py
 git commit -m "Log spec init events"
 ```
 
@@ -149,7 +149,7 @@ git commit -m "Log spec init events"
 ### Task 3: Add logging to `spec archive` and `spec abandon`
 
 **Files:**
-- Modify: `split/tools/split_board/commands.py:98-111` (`_move_spec`)
+- Modify: `src/split_board/commands.py:98-111` (`_move_spec`)
 - Test: `tests/test_split_board.py`
 
 - [ ] **Step 1: Write the failing tests**
@@ -209,7 +209,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add split/tools/split_board/commands.py tests/test_split_board.py
+git add src/split_board/commands.py tests/test_split_board.py
 git commit -m "Log spec archive and abandon events"
 ```
 
@@ -218,7 +218,7 @@ git commit -m "Log spec archive and abandon events"
 ### Task 4: Add logging to `milestone add` and `milestone move-ticket`
 
 **Files:**
-- Modify: `split/tools/split_board/commands.py:116-163` (`cmd_milestone_add`, `cmd_milestone_move_ticket`)
+- Modify: `src/split_board/commands.py:116-163` (`cmd_milestone_add`, `cmd_milestone_move_ticket`)
 - Test: `tests/test_split_board.py`
 
 - [ ] **Step 1: Write the failing tests**
@@ -274,7 +274,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add split/tools/split_board/commands.py tests/test_split_board.py
+git add src/split_board/commands.py tests/test_split_board.py
 git commit -m "Log milestone add and move-ticket events"
 ```
 
@@ -283,7 +283,7 @@ git commit -m "Log milestone add and move-ticket events"
 ### Task 5: Add logging to `ticket add`
 
 **Files:**
-- Modify: `split/tools/split_board/commands.py:168-218` (`cmd_ticket_add`)
+- Modify: `src/split_board/commands.py:168-218` (`cmd_ticket_add`)
 - Test: `tests/test_split_board.py`
 
 - [ ] **Step 1: Write the failing test**
@@ -321,7 +321,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add split/tools/split_board/commands.py tests/test_split_board.py
+git add src/split_board/commands.py tests/test_split_board.py
 git commit -m "Log ticket add events"
 ```
 
@@ -332,7 +332,7 @@ git commit -m "Log ticket add events"
 This is the most complex handler — status, tokens, artifacts, and persona can all change in one call. All changes combine into one log line.
 
 **Files:**
-- Modify: `split/tools/split_board/commands.py:221-294` (`cmd_ticket_update`)
+- Modify: `src/split_board/commands.py:221-294` (`cmd_ticket_update`)
 - Test: `tests/test_split_board.py`
 
 - [ ] **Step 1: Write the failing tests**
@@ -429,7 +429,7 @@ Expected: All existing tests still PASS
 - [ ] **Step 6: Commit**
 
 ```bash
-git add split/tools/split_board/commands.py tests/test_split_board.py
+git add src/split_board/commands.py tests/test_split_board.py
 git commit -m "Log ticket update events with combined messages"
 ```
 
@@ -438,7 +438,7 @@ git commit -m "Log ticket update events with combined messages"
 ### Task 7: Add logging to `ticket add-dependency` and `ticket remove-dependency`
 
 **Files:**
-- Modify: `split/tools/split_board/commands.py:297-342` (`cmd_ticket_add_dependency`, `cmd_ticket_remove_dependency`)
+- Modify: `src/split_board/commands.py:297-342` (`cmd_ticket_add_dependency`, `cmd_ticket_remove_dependency`)
 - Test: `tests/test_split_board.py`
 
 - [ ] **Step 1: Write the failing tests**
@@ -495,7 +495,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add split/tools/split_board/commands.py tests/test_split_board.py
+git add src/split_board/commands.py tests/test_split_board.py
 git commit -m "Log dependency add and remove events"
 ```
 
@@ -504,7 +504,7 @@ git commit -m "Log dependency add and remove events"
 ### Task 8: Add logging to `followup create`
 
 **Files:**
-- Modify: `split/tools/split_board/commands.py:347-392` (`cmd_followup_create`)
+- Modify: `src/split_board/commands.py:347-392` (`cmd_followup_create`)
 - Test: `tests/test_split_board.py`
 
 - [ ] **Step 1: Write the failing test**
@@ -543,7 +543,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add split/tools/split_board/commands.py tests/test_split_board.py
+git add src/split_board/commands.py tests/test_split_board.py
 git commit -m "Log followup create events"
 ```
 
@@ -552,7 +552,7 @@ git commit -m "Log followup create events"
 ### Task 9: Add logging to `decision add`
 
 **Files:**
-- Modify: `split/tools/split_board/commands.py:397-416` (`cmd_decision_add`)
+- Modify: `src/split_board/commands.py:397-416` (`cmd_decision_add`)
 - Test: `tests/test_split_board.py`
 
 - [ ] **Step 1: Write the failing test**
@@ -591,7 +591,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add split/tools/split_board/commands.py tests/test_split_board.py
+git add src/split_board/commands.py tests/test_split_board.py
 git commit -m "Log decision add events"
 ```
 
@@ -600,8 +600,8 @@ git commit -m "Log decision add events"
 ### Task 10: Add `split-board log` subcommand
 
 **Files:**
-- Modify: `split/tools/split_board/cli.py:6-23` (imports), `cli.py:133-148` (parser)
-- Modify: `split/tools/split_board/commands.py` (add `cmd_log`)
+- Modify: `src/split_board/cli.py:6-23` (imports), `cli.py:133-148` (parser)
+- Modify: `src/split_board/commands.py` (add `cmd_log`)
 - Test: `tests/test_split_board.py`
 
 - [ ] **Step 1: Write the failing test**
@@ -632,7 +632,7 @@ Expected: FAIL — `error: argument command: invalid choice: 'log'`
 
 - [ ] **Step 3: Implement the command handler**
 
-Add to `split/tools/split_board/commands.py`:
+Add to `src/split_board/commands.py`:
 
 ```python
 # --- Log ---
@@ -646,7 +646,7 @@ def cmd_log(args: argparse.Namespace) -> None:
 
 - [ ] **Step 4: Wire up the CLI parser**
 
-In `split/tools/split_board/cli.py`, add `cmd_log` to the import:
+In `src/split_board/cli.py`, add `cmd_log` to the import:
 
 ```python
 from .commands import (
@@ -677,7 +677,7 @@ Expected: PASS
 - [ ] **Step 6: Commit**
 
 ```bash
-git add split/tools/split_board/cli.py split/tools/split_board/commands.py tests/test_split_board.py
+git add src/split_board/cli.py src/split_board/commands.py tests/test_split_board.py
 git commit -m "Add split-board log subcommand"
 ```
 
