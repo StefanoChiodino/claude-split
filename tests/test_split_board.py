@@ -6,7 +6,7 @@ import pytest
 import yaml
 
 from split_board.cli import main
-from split_board.board import slugify
+from split_board.board import slugify, append_log
 
 
 # --- Helpers ---
@@ -464,6 +464,30 @@ def test_milestone_status_auto_computed(tmp_path):
     board = _load(spec_dir)
     assert board["milestones"][0]["status"] == "done"
     assert board["milestones"][1]["status"] == "in_progress"
+
+
+# --- append_log ---
+
+def test_append_log_creates_entry(tmp_path):
+    log_path = tmp_path / "log.md"
+    log_path.write_text("")
+    append_log(tmp_path, "T001 backlog→in_progress @dev")
+    lines = log_path.read_text().strip().splitlines()
+    assert len(lines) == 1
+    # ISO timestamp + space + message
+    assert lines[0].endswith("T001 backlog→in_progress @dev")
+    assert "T" in lines[0][:30]  # has ISO timestamp prefix
+
+
+def test_append_log_accumulates(tmp_path):
+    log_path = tmp_path / "log.md"
+    log_path.write_text("")
+    append_log(tmp_path, "first")
+    append_log(tmp_path, "second")
+    lines = log_path.read_text().strip().splitlines()
+    assert len(lines) == 2
+    assert lines[0].endswith("first")
+    assert lines[1].endswith("second")
 
 
 # --- Smoke Tests ---

@@ -50,6 +50,12 @@ def now_iso() -> str:
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
+def append_log(spec_dir: Path, message: str) -> None:
+    log_path = spec_dir / "log.md"
+    with open(log_path, "a") as f:
+        f.write(f"{now_iso()} {message}\n")
+
+
 def slugify(title: str) -> str:
     slug = title.lower()
     slug = re.sub(r"[^a-z0-9]+", "-", slug)
