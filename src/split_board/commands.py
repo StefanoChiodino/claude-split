@@ -2,6 +2,7 @@
 
 import argparse
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -448,6 +449,29 @@ def _print_ticket(t: dict) -> None:
     deps = f" (depends: {', '.join(t['depends_on'])})" if t.get("depends_on") else ""
     approval = " [NEEDS APPROVAL]" if t.get("requires_approval") and t["status"] == "pending_approval" else ""
     print(f"    {t['id']}: [{t['status']}] {t['title']} @{t['persona']}{deps}{approval}")
+
+
+# --- Dashboard ---
+
+def cmd_dashboard(args: argparse.Namespace) -> None:
+    uv = shutil.which("uv")
+    if not uv:
+        error(
+            "uv is required for the dashboard.\n"
+            "  Install: curl -LsSf https://astral.sh/uv/install.sh | sh\n"
+            "  See: https://docs.astral.sh/uv/"
+        )
+
+    script = Path(__file__).parent.parent.parent / "split" / "tools" / "split_board_dashboard.py"
+    if not script.exists():
+        error(f"Dashboard script not found at {script}")
+
+    cmd = [uv, "run", str(script), "--base-dir", str(args.base_dir)]
+    if args.spec:
+        cmd.extend(["--spec", args.spec])
+
+    result = subprocess.run(cmd)
+    sys.exit(result.returncode)
 
 
 def cmd_validate(args: argparse.Namespace) -> None:

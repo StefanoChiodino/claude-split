@@ -5,6 +5,7 @@ import sys
 
 from .board import DEFAULT_BASE_DIR, VALID_TICKET_STATUSES
 from .commands import (
+    cmd_dashboard,
     cmd_decision_add,
     cmd_followup_create,
     cmd_milestone_add,
@@ -129,6 +130,11 @@ def build_parser() -> argparse.ArgumentParser:
     dec_add_p.add_argument("--answer", required=True)
     dec_add_p.add_argument("--spec")
     dec_add_p.set_defaults(func=cmd_decision_add)
+
+    # dashboard
+    dashboard_p = sub.add_parser("dashboard", help="Live dashboard TUI")
+    dashboard_p.add_argument("--spec")
+    dashboard_p.set_defaults(func=cmd_dashboard)
 
     # status
     status_p = sub.add_parser("status", help="Show board status")
