@@ -30,7 +30,7 @@ One line per event, append-only:
 ```
 2026-04-13T19:04:29+00:00 T002 backlog→in_progress @senior-dev
 2026-04-13T19:05:12+00:00 T002 artifact: vector_voyage/
-2026-04-13T19:06:00+00:00 Dispatching T003 to senior-dev agent
+2026-04-13T19:06:00+00:00 T003 dispatching to senior-dev agent
 2026-04-13T19:10:33+00:00 T003 backlog→in_progress
 2026-04-13T19:15:01+00:00 T003 in_progress→done tokens=15230
 ```
@@ -63,7 +63,7 @@ For `ticket update`, all changes are combined into a single log line. Order: sta
 ### Manual `log` Command
 
 ```
-split-board log --message "Dispatching T003 to senior-dev agent" [--spec S001]
+split-board log --message "T003 dispatching to senior-dev agent" [--spec S001]
 ```
 
 Same `append_log` helper, same format. The orchestrator uses this for events the CLI can't infer — dispatches, errors, free-form notes. Requires `--message`.
