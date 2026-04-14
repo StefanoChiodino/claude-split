@@ -136,20 +136,35 @@ Everything else — running code, running tests, editing files, installing depen
    - Artifacts from dependency tickets (read the files listed in completed tickets)
    - The ticket ID for reference in questions and decisions
    - Instruction to record what files were created/modified (these become artifacts)
+   - The following preamble (include verbatim in every dispatch):
 
-4. **Update the ticket** when the agent completes:
-   ```bash
-   split-board ticket update --id T001 --status done \
-     --tokens-used <tokens> --artifact <file-path>
-   ```
+     > Before starting work, check whether your acceptance criteria are already satisfied by existing code, tests, or artifacts. If they are, report "Outcome: already_satisfied" with evidence (file paths, test names, what satisfies each criterion). Otherwise, proceed with your work and end your response with one of: "Outcome: completed", "Outcome: failed — <reason>", or "Outcome: needs_input — <question>".
 
-5. **Handle special outcomes:**
+4. **Handle agent outcome** based on the outcome line in the agent's response:
 
-   - **Persona has questions** — Surface to the user tagged with persona and ticket ID. Record answers as decisions:
+   - **`completed`** — Agent did the work. Update the ticket:
+     ```bash
+     split-board ticket update --id T001 --status done \
+       --artifact <file-path>
+     ```
+
+   - **`already_satisfied`** — Acceptance criteria were already met. Mark done with the evidence files as artifacts:
+     ```bash
+     split-board ticket update --id T001 --status done \
+       --artifact <evidence-file>
+     ```
+     Log: "T001: already satisfied — <evidence summary>"
+
+   - **`failed`** — Agent could not complete. Enter the failure escalation ladder (see Error Handling).
+
+   - **`needs_input`** — Agent needs a user decision. Surface the question tagged with persona and ticket ID. Record the answer:
      ```bash
      split-board decision add --ticket T001 --question "..." \
        --answered-by user --answer "..."
      ```
+     Re-dispatch the agent with the answer.
+
+5. **Handle review outcomes:**
 
    - **Requires approval** — Set status to `pending_approval`. Surface output to user. Wait for approve/reject.
      - Approved: `split-board ticket update --id T001 --status done`
@@ -234,11 +249,16 @@ After the demo:
 
 ### Agent Failure
 
-If a persona-agent fails (context limit, tool error, wrong output):
+If a persona-agent reports `failed` or crashes (context limit, tool error, wrong output):
 
-1. Report to user: "[Persona] failed on [ticket]: [reason]"
-2. Offer: retry (re-dispatch with error context), reassign (different persona), or skip
-3. If skipped: `split-board ticket update --id T001 --status skipped`
+1. **Retry** — re-dispatch the same persona with the error context from the failed attempt.
+2. **Reassign** — if retry fails, dispatch a different persona with both failure reports.
+3. **Escalate** — if reassign fails, present all failure reports to the user. The user decides:
+   - Retry with specific guidance
+   - Create a different ticket to address the problem
+   - Skip (`split-board ticket update --id T001 --status skipped`) — this is a conscious product decision meaning "we don't need this work"
+
+`skipped` is never an orchestrator-initiated shortcut. It requires user confirmation through escalation.
 
 ### Board Corruption
 
