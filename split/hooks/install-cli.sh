@@ -3,7 +3,7 @@
 # The venv persists in CLAUDE_PLUGIN_DATA across sessions; only PATH is
 # injected per-session via CLAUDE_ENV_FILE.
 
-CLI_DIR="${CLAUDE_PLUGIN_ROOT}/tools"
+CLI_DIR="${CLAUDE_PLUGIN_ROOT}/.."
 VENV_DIR="${CLAUDE_PLUGIN_DATA}/.venv"
 
 if ! command -v uv >/dev/null 2>&1; then

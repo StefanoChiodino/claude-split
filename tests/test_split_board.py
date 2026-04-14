@@ -198,7 +198,7 @@ def test_ticket_update_to_in_progress(tmp_path):
     assert board["milestones"][0]["tickets"][0]["status"] == "in_progress"
 
 
-def test_ticket_update_to_done_requires_tokens_and_artifact(tmp_path):
+def test_ticket_update_to_done_requires_artifact(tmp_path):
     base, _ = _init_spec_with_milestone(tmp_path)
     main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
     main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])

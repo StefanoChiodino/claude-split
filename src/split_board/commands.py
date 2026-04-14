@@ -459,7 +459,6 @@ def cmd_status(args: argparse.Namespace) -> None:
 
     if metrics:
         print(f"Tickets: {metrics.get('completed_tickets', 0)}/{metrics.get('total_tickets', 0)} done | "
-              f"Tokens: {metrics.get('total_tokens', 0)} | "
               f"Follow-ups: {metrics.get('follow_up_tickets', 0)} | "
               f"Questions: {metrics.get('user_questions', 0)}")
 
@@ -481,7 +480,9 @@ def cmd_dashboard(args: argparse.Namespace) -> None:
             "  See: https://docs.astral.sh/uv/"
         )
 
-    script = Path(__file__).parent.parent.parent / "split" / "tools" / "split_board_dashboard.py"
+    # Repo root is two levels above split_board package (src/split_board/ → src/ → root)
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    script = repo_root / "split" / "tools" / "split_board_dashboard.py"
     if not script.exists():
         error(f"Dashboard script not found at {script}")
 
