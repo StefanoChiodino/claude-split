@@ -1,0 +1,20 @@
+{
+  "name": "claude-split",
+  "owner": {
+    "name": "Stefano Chiodino"
+  },
+  "metadata": {
+    "description": "Team orchestration plugin for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "split",
+      "source": "./",
+      "description": "Turn a single AI session into a team of specialized personas coordinated through a kanban board",
+      "version": "0.1.0",
+      "author": {
+        "name": "Stefano Chiodino"
+      }
+    }
+  ]
+}
