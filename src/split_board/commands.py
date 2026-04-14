@@ -347,6 +347,7 @@ def cmd_ticket_remove_dependency(args: argparse.Namespace) -> None:
     recompute_ticket_blocked_statuses(board)
     recompute_milestone_statuses(board)
     save_board(board, board_path)
+    append_log(spec_dir, f"{args.id} dependency removed: {args.depends_on}")
     success(f"Dependency {args.depends_on} removed from {args.id}")
 
 

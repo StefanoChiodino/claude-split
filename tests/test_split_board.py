@@ -623,6 +623,24 @@ def test_decision_add_logs(tmp_path):
     assert 'T001 decision by user: "Redis or memory?"' in log
 
 
+def test_manual_log_command(tmp_path):
+    base, spec_dir = _init_spec(tmp_path)
+    main(["--base-dir", str(base), "log", "--message", "orchestrator: starting phase 2"])
+    log = (spec_dir / "log.md").read_text().strip()
+    assert "orchestrator: starting phase 2" in log
+
+
+def test_read_only_commands_do_not_log(tmp_path):
+    base, spec_dir = _init_spec_with_milestone(tmp_path)
+    main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    log_before = (spec_dir / "log.md").read_text()
+    main(["--base-dir", str(base), "status"])
+    main(["--base-dir", str(base), "validate"])
+    main(["--base-dir", str(base), "spec", "list"])
+    log_after = (spec_dir / "log.md").read_text()
+    assert log_before == log_after
+
+
 # --- Smoke Tests ---
 
 def test_smoke_help():
