@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "split",
-      "source": "./",
+      "source": "./split",
       "description": "Turn a single AI session into a team of specialized personas coordinated through a kanban board",
       "version": "0.1.0",
       "author": {

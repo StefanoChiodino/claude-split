@@ -6,9 +6,18 @@ Split assigns work to personas like SME, Tech Lead, Senior Dev, Test Writer, Cod
 
 ## Install
 
+Inside Claude:
+
 ```
 /plugin marketplace add StefanoChiodino/claude-split
 /plugin install split@stefanochiodino-claude-split
+```
+
+Or from the terminal:
+
+```sh
+claude plugin marketplace add StefanoChiodino/claude-split
+claude plugin install split@stefanochiodino-claude-split
 ```
 
 ## Usage
@@ -20,6 +29,38 @@ Start a session and invoke the skill:
 ```
 
 The orchestrator will guide you through spec creation, task breakdown, and parallel execution across personas.
+
+## Local development
+
+Inside Claude:
+
+```
+/plugin marketplace add StefanoChiodino/claude-split
+/plugin install split@stefanochiodino-claude-split
+```
+
+Or from the terminal:
+
+```sh
+claude plugin marketplace add StefanoChiodino/claude-split
+claude plugin install split@stefanochiodino-claude-split
+```
+
+To fully reset:
+
+Inside Claude:
+
+```
+/plugin uninstall split
+```
+
+Or from the terminal:
+
+```sh
+claude plugin uninstall split
+rm -rf ~/.claude/plugins/cache/claude-split
+rm -rf ~/.claude/plugins/marketplaces/claude-split
+```
 
 ## Requirements
 

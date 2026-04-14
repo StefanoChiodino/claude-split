@@ -1,26 +1,14 @@
 #!/bin/sh
-# Install the split-board CLI via uv tool install on session start.
+# Auto-approve split-board commands in this project on session start.
+# The split-board binary is provided via split/bin/split-board (in PATH
+# automatically via Claude Code's plugin bin/ mechanism) and installs lazily
+# on first use via uv run. No PATH or venv management needed here.
 
-CLI_DIR="${CLAUDE_PLUGIN_ROOT}/tools"
-
-if ! command -v uv >/dev/null 2>&1; then
-  echo "ERROR: uv is required but not found. Install it: https://docs.astral.sh/uv/" >&2
-  exit 1
-fi
-
-# Install or upgrade split-board from the plugin's tools directory.
-uv tool install "$CLI_DIR" --reinstall-package split-board --quiet
-
-# --- Auto-approve split-board for all agents/sessions ---
-# Claude Code prompts for permission on every Bash call unless the command
-# matches an entry in .claude/settings.local.json → permissions.allow.
-# We inject that entry once so the user is never prompted for split-board.
 PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 PERM='Bash(split-board:*)'
 
-if [ -z "$PROJECT_ROOT" ]; then
-  exit 0
-fi
+# If we can't find the project root, bail — nothing to configure.
+[ -z "$PROJECT_ROOT" ] && exit 0
 
 SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.local.json"
 

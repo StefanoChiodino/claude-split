@@ -1,0 +1,10 @@
+#!/bin/sh
+# Wrapper for the split-board CLI.
+# Claude Code adds {plugin_root}/bin/ to PATH automatically, so this script
+# is always discoverable without any PATH manipulation in hooks.
+#
+# On first call, uv creates a venv in tools/.venv and installs split-board.
+# Subsequent calls reuse the cached venv (~instant startup).
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
+exec uv run --project "$PLUGIN_ROOT/tools" split-board "$@"
