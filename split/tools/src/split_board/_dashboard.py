@@ -95,7 +95,9 @@ def ticket_card(t: dict) -> Text:
 def milestone_table(ms: dict) -> Table:
     """Render one milestone as a Rich Table with 4 kanban columns."""
     tickets = ms.get("tickets", [])
-    done = sum(1 for t in tickets if t.get("status") == "done")
+    resolved = sum(
+        1 for t in tickets if t.get("status") in ("done", "skipped")
+    )
 
     # Bucket tickets into columns
     cols: list[list[dict]] = [[] for _ in range(4)]
@@ -106,7 +108,7 @@ def milestone_table(ms: dict) -> Table:
         show_header=True,
         expand=True,
         box=box.ROUNDED,
-        title=f"{ms['id']}: {ms['title']}  [{done}/{len(tickets)} done]",
+        title=f"{ms['id']}: {ms['title']}  [{resolved}/{len(tickets)} resolved]",
         title_style="bold",
         padding=(0, 1),
     )
@@ -148,7 +150,9 @@ def metrics_view(board: dict, log_mtime: float = 0) -> RenderableType:
         tickets.extend(ms.get("tickets", []))
     milestones = board.get("milestones", [])
 
-    done_tickets = sum(1 for t in tickets if t.get("status") == "done")
+    resolved_tickets = sum(
+        1 for t in tickets if t.get("status") in ("done", "skipped")
+    )
     dispatches = sum(
         1 for t in tickets
         if t.get("status") in ("in_progress", "pending_approval", "done")
@@ -162,11 +166,11 @@ def metrics_view(board: dict, log_mtime: float = 0) -> RenderableType:
     ms_done = sum(
         1 for ms in milestones
         if ms.get("tickets")
-        and all(t.get("status") == "done" for t in ms["tickets"])
+        and all(t.get("status") in ("done", "skipped") for t in ms["tickets"])
     )
     # Line 1
     line1 = Text("  ")
-    line1.append(f"Tickets: {done_tickets}/{len(tickets)} done", style="bold")
+    line1.append(f"Resolved: {resolved_tickets}/{len(tickets)}", style="bold")
     line1.append("  \u2502  ")
     line1.append(f"Dispatches: {dispatches}", style="bold")
     line1.append("  \u2502  ")

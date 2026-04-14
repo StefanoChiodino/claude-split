@@ -175,6 +175,17 @@ def test_ticket_add_with_dependency_sets_blocked(tmp_path):
     assert tickets[1]["depends_on"] == ["T001"]
 
 
+def test_ticket_add_with_completed_dependency_starts_backlog(tmp_path):
+    base, spec_dir = _init_spec_with_milestone(tmp_path)
+    main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--artifact", "a.md"])
+    main(["--base-dir", str(base), "ticket", "add", "--title", "B", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001", "--depends-on", "T001"])
+    board = _load(spec_dir)
+    tickets = board["milestones"][0]["tickets"]
+    assert tickets[1]["status"] == "backlog"
+
+
 def test_ticket_add_rejects_missing_dependency(tmp_path):
     base, _ = _init_spec_with_milestone(tmp_path)
     with pytest.raises(SystemExit):
@@ -251,6 +262,18 @@ def test_ticket_update_pending_approval_requires_flag(tmp_path):
     main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
     with pytest.raises(SystemExit):
         main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "pending_approval", "--artifact", "a.md"])
+
+
+def test_ticket_update_pending_approval_can_return_to_in_progress(tmp_path):
+    base, spec_dir = _init_spec_with_milestone(tmp_path)
+    main(["--base-dir", str(base), "ticket", "add", "--title", "Risky", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001", "--requires-approval"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "pending_approval", "--artifact", "a.md"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
+    board = _load(spec_dir)
+    ticket = board["milestones"][0]["tickets"][0]
+    assert ticket["status"] == "in_progress"
+    assert ticket["artifacts"] == ["a.md"]
 
 
 def test_ticket_update_retry_back_to_backlog(tmp_path):
@@ -428,7 +451,21 @@ def test_metrics_counts_skipped_milestone_as_completed(tmp_path):
     main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--artifact", "a.py"])
     main(["--base-dir", str(base), "ticket", "update", "--id", "T002", "--status", "skipped"])
     metrics = _metrics(spec_dir)
+    assert metrics["resolved_tickets"] == 2
     assert metrics["milestones_completed"] == 1
+
+
+def test_status_counts_skipped_tickets_as_resolved(tmp_path, capsys):
+    base, _ = _init_spec_with_milestone(tmp_path, milestone_title="Phase 1")
+    main(["--base-dir", str(base), "ticket", "add", "--title", "Impl", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    main(["--base-dir", str(base), "ticket", "add", "--title", "Tests", "--persona", "test-writer", "--acceptance-criteria", "ac", "--produces", "tests", "--milestone", "M001"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--artifact", "a.py"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T002", "--status", "skipped"])
+    main(["--base-dir", str(base), "status"])
+    out = capsys.readouterr().out
+    assert "[2/2 resolved]" in out
+    assert "Resolved: 2/2" in out
 
 
 # --- Spec Disambiguation ---

@@ -28,7 +28,7 @@ VALID_TRANSITIONS = {
     "backlog": {"in_progress", "skipped"},
     "blocked": {"skipped"},
     "in_progress": {"done", "pending_approval", "backlog", "skipped"},
-    "pending_approval": {"done", "skipped"},
+    "pending_approval": {"done", "in_progress", "skipped"},
     "done": set(),
     "skipped": set(),
     "blocked_by_skip": {"skipped"},
@@ -109,6 +109,9 @@ def find_ticket_milestone(board: dict, ticket_id: str) -> dict | None:
 def compute_metrics(board: dict) -> dict:
     tickets = get_all_tickets(board)
     milestones = board.get("milestones", [])
+    resolved_tickets = sum(
+        1 for t in tickets if t.get("status") in ("done", "skipped")
+    )
 
     user_questions = 0
     for t in tickets:
@@ -130,6 +133,7 @@ def compute_metrics(board: dict) -> dict:
         ),
         "total_tickets": len(tickets),
         "completed_tickets": sum(1 for t in tickets if t.get("status") == "done"),
+        "resolved_tickets": resolved_tickets,
         "follow_up_tickets": sum(1 for t in tickets if t.get("created_by")),
         "user_questions": user_questions,
         "milestones_completed": milestones_completed,

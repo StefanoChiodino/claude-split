@@ -217,6 +217,7 @@ def cmd_ticket_add(args: argparse.Namespace) -> None:
     if not placed:
         error(f"Milestone {args.milestone} not found")
 
+    recompute_ticket_blocked_statuses(board)
     recompute_milestone_statuses(board)
     save_board(board, board_path)
     append_log(spec_dir, f'{ticket_id} added to {args.milestone}: "{args.title}" @{args.persona}')
@@ -451,14 +452,19 @@ def cmd_status(args: argparse.Namespace) -> None:
 
     for ms in board.get("milestones", []):
         ms_tickets = ms.get("tickets", [])
-        done_count = sum(1 for t in ms_tickets if t["status"] == "done")
-        print(f"  {ms['id']}: {ms['title']} [{ms['status']}] [{done_count}/{len(ms_tickets)} done]")
+        resolved_count = sum(
+            1 for t in ms_tickets if t["status"] in ("done", "skipped")
+        )
+        print(
+            f"  {ms['id']}: {ms['title']} [{ms['status']}] "
+            f"[{resolved_count}/{len(ms_tickets)} resolved]"
+        )
         for t in ms_tickets:
             _print_ticket(t)
         print()
 
     if metrics:
-        print(f"Tickets: {metrics.get('completed_tickets', 0)}/{metrics.get('total_tickets', 0)} done | "
+        print(f"Resolved: {metrics.get('resolved_tickets', metrics.get('completed_tickets', 0))}/{metrics.get('total_tickets', 0)} | "
               f"Follow-ups: {metrics.get('follow_up_tickets', 0)} | "
               f"Questions: {metrics.get('user_questions', 0)}")
 
