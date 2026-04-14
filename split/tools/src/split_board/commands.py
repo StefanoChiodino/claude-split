@@ -472,6 +472,8 @@ def _print_ticket(t: dict) -> None:
 # --- Dashboard ---
 
 def cmd_dashboard(args: argparse.Namespace) -> None:
+    import importlib.resources
+
     uv = shutil.which("uv")
     if not uv:
         error(
@@ -480,17 +482,12 @@ def cmd_dashboard(args: argparse.Namespace) -> None:
             "  See: https://docs.astral.sh/uv/"
         )
 
-    # Repo root is two levels above split_board package (src/split_board/ → src/ → root)
-    repo_root = Path(__file__).resolve().parent.parent.parent
-    script = repo_root / "split" / "tools" / "split_board_dashboard.py"
-    if not script.exists():
-        error(f"Dashboard script not found at {script}")
-
-    cmd = [uv, "run", str(script), "--base-dir", str(args.base_dir)]
-    if args.spec:
-        cmd.extend(["--spec", args.spec])
-
-    result = subprocess.run(cmd)
+    script_ref = importlib.resources.files("split_board") / "_dashboard.py"
+    with importlib.resources.as_file(script_ref) as script_path:
+        cmd = [uv, "run", str(script_path), "--base-dir", str(args.base_dir)]
+        if args.spec:
+            cmd.extend(["--spec", args.spec])
+        result = subprocess.run(cmd)
     sys.exit(result.returncode)
 
 
