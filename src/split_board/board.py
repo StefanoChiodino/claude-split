@@ -119,7 +119,7 @@ def compute_metrics(board: dict) -> dict:
     milestones_completed = 0
     for ms in milestones:
         ms_tickets = ms.get("tickets", [])
-        if ms_tickets and all(t.get("status") == "done" for t in ms_tickets):
+        if ms_tickets and all(t.get("status") in ("done", "skipped") for t in ms_tickets):
             milestones_completed += 1
 
     return {
@@ -127,14 +127,12 @@ def compute_metrics(board: dict) -> dict:
         "agent_dispatches": sum(
             1 for t in tickets
             if t.get("status") in ("in_progress", "pending_approval", "done")
-            or t.get("tokens_used", 0) > 0
         ),
         "total_tickets": len(tickets),
         "completed_tickets": sum(1 for t in tickets if t.get("status") == "done"),
         "follow_up_tickets": sum(1 for t in tickets if t.get("created_by")),
         "user_questions": user_questions,
         "milestones_completed": milestones_completed,
-        "total_tokens": sum(t.get("tokens_used", 0) for t in tickets),
     }
 
 

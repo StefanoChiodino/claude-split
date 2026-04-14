@@ -8,6 +8,7 @@ from .commands import (
     cmd_dashboard,
     cmd_decision_add,
     cmd_followup_create,
+    cmd_log,
     cmd_milestone_add,
     cmd_milestone_move_ticket,
     cmd_spec_abandon,
@@ -88,7 +89,6 @@ def build_parser() -> argparse.ArgumentParser:
     tk_update_p = tk_sub.add_parser("update", help="Update a ticket")
     tk_update_p.add_argument("--id", required=True)
     tk_update_p.add_argument("--status", choices=VALID_TICKET_STATUSES)
-    tk_update_p.add_argument("--tokens-used", type=int)
     tk_update_p.add_argument("--artifact", action="append", dest="artifacts")
     tk_update_p.add_argument("--persona")
     tk_update_p.add_argument("--spec")
@@ -130,6 +130,12 @@ def build_parser() -> argparse.ArgumentParser:
     dec_add_p.add_argument("--answer", required=True)
     dec_add_p.add_argument("--spec")
     dec_add_p.set_defaults(func=cmd_decision_add)
+
+    # log
+    log_p = sub.add_parser("log", help="Add a manual log entry")
+    log_p.add_argument("--message", required=True)
+    log_p.add_argument("--spec")
+    log_p.set_defaults(func=cmd_log)
 
     # dashboard
     dashboard_p = sub.add_parser("dashboard", help="Live dashboard TUI")

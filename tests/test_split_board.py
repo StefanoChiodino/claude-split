@@ -159,7 +159,6 @@ def test_ticket_add(tmp_path):
     assert t["status"] == "backlog"
     assert t["depends_on"] == []
     assert t["requires_approval"] is False
-    assert t["tokens_used"] == 0
     assert t["artifacts"] == []
     assert t["follow_ups"] == []
     assert t["created_by"] is None
@@ -207,15 +206,14 @@ def test_ticket_update_to_done_requires_tokens_and_artifact(tmp_path):
         main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done"])
 
 
-def test_ticket_update_to_done_with_tokens_and_artifact(tmp_path):
+def test_ticket_update_to_done_with_artifact(tmp_path):
     base, spec_dir = _init_spec_with_milestone(tmp_path)
     main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
     main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
-    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--tokens-used", "5000", "--artifact", "out.md"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--artifact", "out.md"])
     board = _load(spec_dir)
     tickets = board["milestones"][0]["tickets"]
     assert tickets[0]["status"] == "done"
-    assert tickets[0]["tokens_used"] == 5000
     assert "out.md" in tickets[0]["artifacts"]
 
 
@@ -233,7 +231,7 @@ def test_ticket_update_auto_unblocks_downstream(tmp_path):
     main(["--base-dir", str(base), "ticket", "add", "--title", "B", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001", "--depends-on", "T001"])
     assert _load(spec_dir)["milestones"][0]["tickets"][1]["status"] == "blocked"
     main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
-    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--tokens-used", "100", "--artifact", "a.md"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--artifact", "a.md"])
     board = _load(spec_dir)
     assert board["milestones"][0]["tickets"][1]["status"] == "backlog"
 
@@ -242,7 +240,7 @@ def test_ticket_update_pending_approval(tmp_path):
     base, spec_dir = _init_spec_with_milestone(tmp_path)
     main(["--base-dir", str(base), "ticket", "add", "--title", "Risky", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001", "--requires-approval"])
     main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
-    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "pending_approval", "--tokens-used", "100", "--artifact", "a.md"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "pending_approval", "--artifact", "a.md"])
     board = _load(spec_dir)
     assert board["milestones"][0]["tickets"][0]["status"] == "pending_approval"
 
@@ -252,7 +250,7 @@ def test_ticket_update_pending_approval_requires_flag(tmp_path):
     main(["--base-dir", str(base), "ticket", "add", "--title", "Normal", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
     main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
     with pytest.raises(SystemExit):
-        main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "pending_approval", "--tokens-used", "100", "--artifact", "a.md"])
+        main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "pending_approval", "--artifact", "a.md"])
 
 
 def test_ticket_update_retry_back_to_backlog(tmp_path):
@@ -395,7 +393,6 @@ def test_validate_catches_missing_artifact_on_done(tmp_path):
     main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
     board = _load(spec_dir)
     board["milestones"][0]["tickets"][0]["status"] = "done"
-    board["milestones"][0]["tickets"][0]["tokens_used"] = 100
     with open(spec_dir / "board.yaml", "w") as f:
         yaml.dump(board, f, default_flow_style=False, sort_keys=False)
     with pytest.raises(SystemExit):
@@ -409,7 +406,7 @@ def test_metrics_through_full_workflow(tmp_path):
     main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
     main(["--base-dir", str(base), "ticket", "add", "--title", "B", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001", "--depends-on", "T001"])
     main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
-    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--tokens-used", "5000", "--artifact", "a.md"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--artifact", "a.md"])
     main(["--base-dir", str(base), "decision", "add", "--ticket", "T001", "--question", "Q", "--answered-by", "user", "--answer", "A"])
     main(["--base-dir", str(base), "followup", "create", "--parent", "T001", "--persona", "dev", "--title", "Fix", "--acceptance-criteria", "ac", "--produces", "impl"])
     main(["--base-dir", str(base), "ticket", "update", "--id", "T002", "--status", "in_progress"])
@@ -419,8 +416,19 @@ def test_metrics_through_full_workflow(tmp_path):
     assert metrics["completed_tickets"] == 1
     assert metrics["follow_up_tickets"] == 1
     assert metrics["user_questions"] == 1
-    assert metrics["total_tokens"] == 5000
     assert metrics["agent_dispatches"] >= 2
+
+
+def test_metrics_counts_skipped_milestone_as_completed(tmp_path):
+    base, spec_dir = _init_spec_with_milestone(tmp_path)
+    main(["--base-dir", str(base), "ticket", "add", "--title", "Impl", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    main(["--base-dir", str(base), "ticket", "add", "--title", "Tests", "--persona", "test-writer", "--acceptance-criteria", "ac", "--produces", "tests", "--milestone", "M001"])
+    # Complete T001, skip T002
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--artifact", "a.py"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T002", "--status", "skipped"])
+    metrics = _metrics(spec_dir)
+    assert metrics["milestones_completed"] == 1
 
 
 # --- Spec Disambiguation ---
@@ -460,7 +468,23 @@ def test_milestone_status_auto_computed(tmp_path):
     assert board["milestones"][1]["status"] == "todo"
     # Complete M1
     main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
-    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--tokens-used", "100", "--artifact", "a.md"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--artifact", "a.md"])
+    board = _load(spec_dir)
+    assert board["milestones"][0]["status"] == "done"
+    assert board["milestones"][1]["status"] == "in_progress"
+
+
+def test_milestone_done_when_all_done_or_skipped(tmp_path):
+    base, spec_dir = _init_spec(tmp_path)
+    main(["--base-dir", str(base), "milestone", "add", "--title", "M1"])
+    main(["--base-dir", str(base), "milestone", "add", "--title", "M2"])
+    main(["--base-dir", str(base), "ticket", "add", "--title", "Impl", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    main(["--base-dir", str(base), "ticket", "add", "--title", "Tests", "--persona", "test-writer", "--acceptance-criteria", "ac", "--produces", "tests", "--milestone", "M001"])
+    main(["--base-dir", str(base), "ticket", "add", "--title", "Other", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M002"])
+    # Complete T001, skip T002
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--artifact", "a.py"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T002", "--status", "skipped"])
     board = _load(spec_dir)
     assert board["milestones"][0]["status"] == "done"
     assert board["milestones"][1]["status"] == "in_progress"
@@ -488,6 +512,115 @@ def test_append_log_accumulates(tmp_path):
     assert len(lines) == 2
     assert lines[0].endswith("first")
     assert lines[1].endswith("second")
+
+
+# --- Logging ---
+
+def test_spec_init_logs(tmp_path):
+    main(["--base-dir", str(tmp_path), "spec", "init", "--title", "Rate limiting"])
+    spec_dir = list((tmp_path / "active").iterdir())[0]
+    log = (spec_dir / "log.md").read_text().strip()
+    assert 'S001 created: "Rate limiting"' in log
+
+
+def test_spec_archive_logs(tmp_path):
+    main(["--base-dir", str(tmp_path), "spec", "init", "--title", "To archive"])
+    main(["--base-dir", str(tmp_path), "spec", "archive", "--spec", "S001"])
+    archived_dir = tmp_path / "archive" / "S001-to-archive"
+    log = (archived_dir / "log.md").read_text().strip()
+    assert "S001 archived" in log
+
+
+def test_spec_abandon_logs(tmp_path):
+    main(["--base-dir", str(tmp_path), "spec", "init", "--title", "To abandon"])
+    main(["--base-dir", str(tmp_path), "spec", "abandon", "--spec", "S001"])
+    archived_dir = tmp_path / "archive" / "S001-to-abandon"
+    log = (archived_dir / "log.md").read_text().strip()
+    assert "S001 abandoned" in log
+
+
+def test_milestone_add_logs(tmp_path):
+    base, spec_dir = _init_spec(tmp_path)
+    main(["--base-dir", str(base), "milestone", "add", "--title", "Foundation"])
+    log = (spec_dir / "log.md").read_text().strip()
+    assert 'M001 added: "Foundation"' in log
+
+
+def test_milestone_move_ticket_logs(tmp_path):
+    base, spec_dir = _init_spec(tmp_path)
+    main(["--base-dir", str(base), "milestone", "add", "--title", "M1"])
+    main(["--base-dir", str(base), "milestone", "add", "--title", "M2"])
+    main(["--base-dir", str(base), "ticket", "add", "--title", "T", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    main(["--base-dir", str(base), "milestone", "move-ticket", "--ticket", "T001", "--milestone", "M002"])
+    log = (spec_dir / "log.md").read_text().strip()
+    assert "T001 moved to M002" in log
+
+
+def test_ticket_add_logs(tmp_path):
+    base, spec_dir = _init_spec_with_milestone(tmp_path)
+    main(["--base-dir", str(base), "ticket", "add", "--title", "Do thing", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    log = (spec_dir / "log.md").read_text().strip()
+    assert 'T001 added to M001: "Do thing" @dev' in log
+
+
+def test_ticket_update_status_logs(tmp_path):
+    base, spec_dir = _init_spec_with_milestone(tmp_path)
+    main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
+    log = (spec_dir / "log.md").read_text().strip()
+    assert "T001 backlog→in_progress @dev" in log
+
+
+def test_ticket_update_done_combined_logs(tmp_path):
+    base, spec_dir = _init_spec_with_milestone(tmp_path)
+    main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--artifact", "out.md"])
+    log = (spec_dir / "log.md").read_text().strip()
+    assert "T001 in_progress→done @dev artifact: out.md" in log
+
+
+def test_ticket_update_artifact_only_logs(tmp_path):
+    base, spec_dir = _init_spec_with_milestone(tmp_path)
+    main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--artifact", "out.md"])
+    log = (spec_dir / "log.md").read_text().strip()
+    assert "T001 artifact: out.md" in log
+
+
+def test_ticket_add_dependency_logs(tmp_path):
+    base, spec_dir = _init_spec_with_milestone(tmp_path)
+    main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    main(["--base-dir", str(base), "ticket", "add", "--title", "B", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    main(["--base-dir", str(base), "ticket", "add-dependency", "--id", "T002", "--depends-on", "T001"])
+    log = (spec_dir / "log.md").read_text().strip()
+    assert "T002 dependency added: T001" in log
+
+
+def test_ticket_remove_dependency_logs(tmp_path):
+    base, spec_dir = _init_spec_with_milestone(tmp_path)
+    main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    main(["--base-dir", str(base), "ticket", "add", "--title", "B", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001", "--depends-on", "T001"])
+    main(["--base-dir", str(base), "ticket", "remove-dependency", "--id", "T002", "--depends-on", "T001"])
+    log = (spec_dir / "log.md").read_text().strip()
+    assert "T002 dependency removed: T001" in log
+
+
+def test_followup_create_logs(tmp_path):
+    base, spec_dir = _init_spec_with_milestone(tmp_path)
+    main(["--base-dir", str(base), "ticket", "add", "--title", "Parent", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    main(["--base-dir", str(base), "followup", "create", "--parent", "T001", "--persona", "tester", "--title", "Fix race condition", "--acceptance-criteria", "ac", "--produces", "impl"])
+    log = (spec_dir / "log.md").read_text().strip()
+    assert 'T001a follow-up of T001: "Fix race condition" @tester' in log
+
+
+def test_decision_add_logs(tmp_path):
+    base, spec_dir = _init_spec_with_milestone(tmp_path)
+    main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
+    main(["--base-dir", str(base), "decision", "add", "--ticket", "T001", "--question", "Redis or memory?", "--answered-by", "user", "--answer", "Redis"])
+    log = (spec_dir / "log.md").read_text().strip()
+    assert 'T001 decision by user: "Redis or memory?"' in log
 
 
 # --- Smoke Tests ---

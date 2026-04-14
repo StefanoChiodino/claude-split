@@ -10,6 +10,7 @@ import yaml
 
 from .board import (
     VALID_TRANSITIONS,
+    append_log,
     error,
     find_ticket,
     find_ticket_milestone,
@@ -60,6 +61,7 @@ def cmd_spec_init(args: argparse.Namespace) -> None:
     }
 
     save_board(board, spec_dir / "board.yaml")
+    append_log(spec_dir, f'{spec_id} created: "{args.title}"')
     success(f"Spec {spec_id} created at {spec_dir}")
 
 
@@ -105,6 +107,7 @@ def _move_spec(args: argparse.Namespace, new_status: str) -> None:
     board = load_board(board_path)
     board["status"] = new_status
     save_board(board, board_path)
+    append_log(spec_dir, f"{board.get('spec', spec_dir.name)} {new_status}")
 
     dest = archive_dir / spec_dir.name
     shutil.move(str(spec_dir), str(dest))
@@ -129,6 +132,7 @@ def cmd_milestone_add(args: argparse.Namespace) -> None:
     board["milestones"].append(milestone)
     recompute_milestone_statuses(board)
     save_board(board, board_path)
+    append_log(spec_dir, f'{ms_id} added: "{args.title}"')
     success(f"Milestone {ms_id} added to {board['spec']}")
 
 
@@ -160,6 +164,7 @@ def cmd_milestone_move_ticket(args: argparse.Namespace) -> None:
     target_ms["tickets"].append(ticket)
     recompute_milestone_statuses(board)
     save_board(board, board_path)
+    append_log(spec_dir, f"{args.ticket} moved to {args.milestone}")
     success(f"Ticket {args.ticket} moved to milestone {args.milestone}")
 
 
@@ -194,7 +199,6 @@ def cmd_ticket_add(args: argparse.Namespace) -> None:
         "acceptance_criteria": args.acceptance_criteria,
         "produces": args.produces,
         "requires_approval": args.requires_approval,
-        "tokens_used": 0,
         "artifacts": [],
         "follow_ups": [],
         "created_by": None,
@@ -215,6 +219,7 @@ def cmd_ticket_add(args: argparse.Namespace) -> None:
 
     recompute_milestone_statuses(board)
     save_board(board, board_path)
+    append_log(spec_dir, f'{ticket_id} added to {args.milestone}: "{args.title}" @{args.persona}')
     success(f"Ticket {ticket_id} added to {board['spec']} (milestone {args.milestone})")
 
 
@@ -228,8 +233,9 @@ def cmd_ticket_update(args: argparse.Namespace) -> None:
     if not ticket:
         error(f"Ticket {args.id} not found")
 
+    old_status = ticket["status"]
+
     if args.status:
-        old_status = ticket["status"]
         new_status = args.status
 
         if new_status not in VALID_TRANSITIONS.get(old_status, set()):
@@ -248,27 +254,20 @@ def cmd_ticket_update(args: argparse.Namespace) -> None:
                         f"Cannot set {args.id} to in_progress\n"
                         f"  Reason: Dependency {dep_id} has status '{dep['status']}' (must be 'done')\n"
                         f"  Fix: Complete {dep_id} first:\n"
-                        f"    split-board ticket update --id {dep_id} --status done --tokens-used <N> --artifact <path>\n"
+                        f"    split-board ticket update --id {dep_id} --status done --artifact <path>\n"
                         f"  Or remove the dependency:\n"
                         f"    split-board ticket remove-dependency --id {args.id} --depends-on {dep_id}"
                     )
 
         if new_status in ("done", "pending_approval"):
-            tokens = args.tokens_used if args.tokens_used is not None else ticket.get("tokens_used", 0)
             artifacts = list(ticket.get("artifacts", []))
             if args.artifacts:
                 artifacts.extend(args.artifacts)
-            if tokens <= 0:
-                error(
-                    f"Cannot set {args.id} to {new_status}\n"
-                    f"  Reason: tokens_used must be > 0\n"
-                    f"  Fix: split-board ticket update --id {args.id} --status {new_status} --tokens-used <N> --artifact <path>"
-                )
             if not artifacts:
                 error(
                     f"Cannot set {args.id} to {new_status}\n"
                     f"  Reason: At least one artifact is required\n"
-                    f"  Fix: split-board ticket update --id {args.id} --status {new_status} --tokens-used {tokens} --artifact <path>"
+                    f"  Fix: split-board ticket update --id {args.id} --status {new_status} --artifact <path>"
                 )
 
         if new_status == "pending_approval" and not ticket.get("requires_approval"):
@@ -279,8 +278,6 @@ def cmd_ticket_update(args: argparse.Namespace) -> None:
 
         ticket["status"] = new_status
 
-    if args.tokens_used is not None:
-        ticket["tokens_used"] = args.tokens_used
     if args.artifacts:
         for a in args.artifacts:
             if a not in ticket["artifacts"]:
@@ -288,9 +285,19 @@ def cmd_ticket_update(args: argparse.Namespace) -> None:
     if args.persona:
         ticket["persona"] = args.persona
 
+    # Build log message from all changes
+    parts = [args.id]
+    if args.status:
+        parts.append(f"{old_status}→{args.status} @{ticket['persona']}")
+    if args.artifacts:
+        for a in args.artifacts:
+            parts.append(f"artifact: {a}")
+
     recompute_ticket_blocked_statuses(board)
     recompute_milestone_statuses(board)
     save_board(board, board_path)
+    if len(parts) > 1:
+        append_log(spec_dir, " ".join(parts))
     success(f"Ticket {args.id} updated")
 
 
@@ -320,6 +327,7 @@ def cmd_ticket_add_dependency(args: argparse.Namespace) -> None:
     recompute_ticket_blocked_statuses(board)
     recompute_milestone_statuses(board)
     save_board(board, board_path)
+    append_log(spec_dir, f"{args.id} dependency added: {args.depends_on}")
     success(f"Dependency {args.depends_on} added to {args.id}")
 
 
@@ -371,7 +379,6 @@ def cmd_followup_create(args: argparse.Namespace) -> None:
         "acceptance_criteria": args.acceptance_criteria,
         "produces": args.produces,
         "requires_approval": False,
-        "tokens_used": 0,
         "artifacts": [],
         "follow_ups": [],
         "created_by": args.parent,
@@ -389,6 +396,7 @@ def cmd_followup_create(args: argparse.Namespace) -> None:
     recompute_ticket_blocked_statuses(board)
     recompute_milestone_statuses(board)
     save_board(board, board_path)
+    append_log(spec_dir, f'{followup_id} follow-up of {args.parent}: "{args.title}" @{args.persona}')
     success(f"Follow-up {followup_id} created for {args.parent}")
 
 
@@ -413,7 +421,17 @@ def cmd_decision_add(args: argparse.Namespace) -> None:
     ticket["decisions"].append(decision)
 
     save_board(board, board_path)
+    append_log(spec_dir, f'{args.ticket} decision by {args.answered_by}: "{args.question}"')
     success(f"Decision recorded on {args.ticket}")
+
+
+# --- Log ---
+
+def cmd_log(args: argparse.Namespace) -> None:
+    base_dir = Path(args.base_dir)
+    spec_dir = resolve_spec_dir(base_dir, getattr(args, "spec", None))
+    append_log(spec_dir, args.message)
+    success("Log entry added")
 
 
 # --- Status & Validate ---

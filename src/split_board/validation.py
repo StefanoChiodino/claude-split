@@ -71,7 +71,7 @@ def recompute_milestone_statuses(board: dict) -> None:
     found_incomplete = False
     for ms in board.get("milestones", []):
         ms_tickets = ms.get("tickets", [])
-        all_done = ms_tickets and all(t.get("status") == "done" for t in ms_tickets)
+        all_done = ms_tickets and all(t.get("status") in ("done", "skipped") for t in ms_tickets)
         if all_done:
             ms["status"] = "done"
         elif not found_incomplete:
@@ -127,8 +127,6 @@ def validate_board(board: dict) -> list[str]:
     for t in all_tickets:
         tid = t.get("id", "?")
         if t.get("status") == "done":
-            if t.get("tokens_used", 0) <= 0:
-                errors.append(f"Ticket {tid}: done but tokens_used <= 0")
             if not t.get("artifacts"):
                 errors.append(f"Ticket {tid}: done but no artifacts")
 
