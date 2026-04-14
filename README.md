@@ -10,14 +10,14 @@ Inside Claude:
 
 ```
 /plugin marketplace add StefanoChiodino/claude-split
-/plugin install split@stefanochiodino-claude-split
+/plugin install split@claude-split
 ```
 
 Or from the terminal:
 
 ```sh
 claude plugin marketplace add StefanoChiodino/claude-split
-claude plugin install split@stefanochiodino-claude-split
+claude plugin install split@claude-split
 ```
 
 ## Usage
@@ -36,14 +36,14 @@ Inside Claude:
 
 ```
 /plugin marketplace add StefanoChiodino/claude-split
-/plugin install split@stefanochiodino-claude-split
+/plugin install split@claude-split
 ```
 
 Or from the terminal:
 
 ```sh
 claude plugin marketplace add StefanoChiodino/claude-split
-claude plugin install split@stefanochiodino-claude-split
+claude plugin install split@claude-split
 ```
 
 To fully reset:
