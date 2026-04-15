@@ -1,0 +1,111 @@
+spec: S001
+title: Thorough review of claude-split plugin and personas
+created: '2026-04-14T22:15:43.816413+00:00'
+status: active
+milestones:
+- id: M001
+  title: Research & Review
+  status: done
+  tickets:
+  - id: T001
+    title: Research Claude plugin best practices
+    persona: researcher
+    status: done
+    depends_on: []
+    acceptance_criteria: 'Investigate what makes a well-structured Claude Code plugin:
+      plugin.json fields, agent frontmatter conventions, skill definition patterns,
+      hook design, tool distribution, marketplace.json schema. Compare against at
+      least 2 other plugins if findable. Produce a structured findings doc listing
+      conventions and best practices.'
+    produces: best-practices-findings
+    requires_approval: false
+    tokens_used: 95964
+    artifacts:
+    - best-practices-findings
+    follow_ups: []
+    created_by: null
+    decisions: []
+  - id: T002
+    title: Review plugin structure, orchestrator (SKILL.md), and docs
+    persona: tech-lead
+    status: done
+    depends_on: []
+    acceptance_criteria: 'Review: (1) plugin.json and marketplace.json schema and
+      completeness; (2) directory layout against conventions; (3) SKILL.md for clarity,
+      ambiguity, role boundary enforcement, error handling, session resumption, and
+      instruction gaps including the missing --tokens-used in the ticket update example;
+      (4) README accuracy and discoverability. Produce severity-rated findings for
+      sections 1, 2, and 7 of the spec.'
+    produces: structure-orchestrator-docs-findings
+    requires_approval: false
+    tokens_used: 51702
+    artifacts:
+    - structure-orchestrator-docs-findings
+    follow_ups: []
+    created_by: null
+    decisions: []
+  - id: T003
+    title: Review all 11 personas and shared core
+    persona: code-reviewer
+    status: done
+    depends_on: []
+    acceptance_criteria: 'Read every persona file in split/agents/. For each of the
+      11 personas plus shared/core-operating-principle.md, evaluate: role clarity,
+      boundary definition, tool access appropriateness, model/effort level, behavioral
+      instruction quality, output format definition, and cross-persona handoff support.
+      Flag overlaps between personas. Address the specific questions from the persona
+      table in the spec. Produce severity-rated findings for spec section 3.'
+    produces: persona-findings
+    requires_approval: false
+    tokens_used: 30060
+    artifacts:
+    - persona-findings
+    follow_ups: []
+    created_by: null
+    decisions: []
+  - id: T004
+    title: Review board CLI, hooks, and test coverage
+    persona: code-reviewer
+    status: done
+    depends_on: []
+    acceptance_criteria: Review split/tools/src/split_board/*.py for correctness,
+      error handling, edge cases, and the known dashboard path bug (commands.py).
+      Review split/hooks/install-cli.sh and guard-board.sh for correctness, security,
+      and cross-platform robustness. Review tests/test_split_board.py for coverage
+      gaps and test quality. Produce severity-rated findings for spec sections 4,
+      5, and 6.
+    produces: cli-hooks-tests-findings
+    requires_approval: false
+    tokens_used: 53567
+    artifacts:
+    - cli-hooks-tests-findings
+    follow_ups: []
+    created_by: null
+    decisions: []
+- id: M002
+  title: Synthesis
+  status: done
+  tickets:
+  - id: T005
+    title: Synthesize all findings into review report
+    persona: technical-writer
+    status: done
+    depends_on:
+    - T004
+    acceptance_criteria: "Read all four findings artifacts from M001. Synthesize into\
+      \ a single comprehensive review report written to docs/review-2026-04-14.md.\
+      \ Structure: executive summary with critical/high finding counts, then 7 sections\
+      \ matching the spec (plugin structure, orchestrator, personas, CLI, hooks, tests,\
+      \ docs). Each finding must include severity, file+line evidence, and a concrete\
+      \ recommendation. End with a prioritized action list. Ensure: (1) every file\
+      \ in the plugin was covered, (2) the dashboard path bug is cited, (3) blocker\
+      \ vs. improvement distinction is clear, (4) the report stands alone \u2014 a\
+      \ reader who hasn't seen the spec should understand it."
+    produces: docs/review-2026-04-14.md
+    requires_approval: false
+    tokens_used: 21822
+    artifacts:
+    - docs/review-2026-04-14.md
+    follow_ups: []
+    created_by: null
+    decisions: []

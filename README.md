@@ -30,6 +30,19 @@ Start a session and invoke the skill:
 
 The orchestrator will guide you through spec creation, task breakdown, and parallel execution across personas.
 
+## Dashboard
+
+A live Textual TUI for monitoring board state — kanban columns (BACKLOG / ACTIVE / APPROVAL / DONE), recent activity, and metrics.
+
+```sh
+split-board dashboard          # all active specs (press `s` to cycle)
+split-board dashboard --spec S001
+```
+
+Keys: `q` quits, `s` cycles between specs.
+
+> Currently `split-board` is not yet exposed on `PATH` from the published plugin. Until that's fixed, run it from the repo with `uv run --project split/tools split-board dashboard`, or invoke the wrapper installed under `~/.claude/plugins/data/split-claude-split/.venv/bin/split-board`.
+
 ## Local development
 
 Inside Claude:
