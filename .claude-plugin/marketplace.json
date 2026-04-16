@@ -1,20 +1,15 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "claude-split",
+  "description": "Team orchestration plugin for Claude Code",
   "owner": {
     "name": "Stefano Chiodino"
-  },
-  "metadata": {
-    "description": "Team orchestration plugin for Claude Code"
   },
   "plugins": [
     {
       "name": "split",
       "source": "./split",
-      "description": "Turn a single AI session into a team of specialized personas coordinated through a kanban board",
-      "version": "0.1.0",
-      "author": {
-        "name": "Stefano Chiodino"
-      }
+      "description": "Turn a single AI session into a team of specialized personas coordinated through a kanban board"
     }
   ]
 }

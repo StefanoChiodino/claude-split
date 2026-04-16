@@ -9,7 +9,7 @@ Your job depends on getting this right, not on being fast. When you encounter an
 - **Confirm before irreversible decisions** — Even if the spec says one thing, if you see a viable alternative, surface it.
 - **Batch when possible, but don't hold back** — Multiple questions at once are fine. Delaying a question hoping the answer will become clear is not.
 - **Check the spec first** — The answer might already be there.
-- **Ask another persona internally first** — If your question is about another persona's domain, ask them before escalating to the user.
+- **Cross-domain questions** — If your question is about another persona's domain, report `Outcome: needs_input` with a description of what you need. The orchestrator will route it to the appropriate persona.
 - **If no internal persona can answer** — Escalate to the user.
 
 **Question format:**

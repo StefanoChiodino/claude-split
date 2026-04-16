@@ -55,6 +55,25 @@ TICKET_STYLE = {
 }
 
 
+PERSONA_DISPLAY = {
+    "senior-dev": "Senior Dev",
+    "tech-lead": "Tech Lead",
+    "test-writer": "Test Writer",
+    "code-reviewer": "Code Reviewer",
+    "ux-designer": "UX Designer",
+    "technical-writer": "Technical Writer",
+    "security-reviewer": "Security Reviewer",
+    "sme": "SME",
+    "devops": "DevOps",
+    "verifier": "Verifier",
+    "researcher": "Researcher",
+}
+
+
+def display_persona(slug: str) -> str:
+    return PERSONA_DISPLAY.get(slug, slug.replace("-", " ").title())
+
+
 # --- Helpers ---
 
 
@@ -85,8 +104,13 @@ def ticket_card(t: dict) -> Text:
     result = Text(style=style)
     result.append(ticket_id, style="bold underline")
 
-    rest = [t.get("persona", ""), t.get("title", "")]
-    result.append("\n" + "\n".join(rest))
+    persona = t.get("persona", "")
+    if persona:
+        result.append(f" \u2022 {display_persona(persona)}")
+
+    title = t.get("title", "")
+    if title:
+        result.append(f"\n{title}")
     if t.get("status") == "pending_approval":
         result.append("\n\u26a0 NEEDS YOU", style="bold yellow blink")
     return result

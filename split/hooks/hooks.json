@@ -7,7 +7,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/install-cli.sh\"",
-            "async": false
+            "timeout": 10
           }
         ]
       }
@@ -19,7 +19,19 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/guard-board.sh\"",
-            "async": false
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/approve-split-board.sh\"",
+            "timeout": 10
           }
         ]
       }

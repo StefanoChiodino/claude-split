@@ -285,6 +285,8 @@ def cmd_ticket_update(args: argparse.Namespace) -> None:
                 ticket["artifacts"].append(a)
     if args.persona:
         ticket["persona"] = args.persona
+    if args.tokens_used is not None:
+        ticket["tokens_used"] = args.tokens_used
 
     # Build log message from all changes
     parts = [args.id]
@@ -293,6 +295,8 @@ def cmd_ticket_update(args: argparse.Namespace) -> None:
     if args.artifacts:
         for a in args.artifacts:
             parts.append(f"artifact: {a}")
+    if args.tokens_used is not None:
+        parts.append(f"tokens_used={args.tokens_used}")
 
     recompute_ticket_blocked_statuses(board)
     recompute_milestone_statuses(board)

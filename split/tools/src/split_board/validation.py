@@ -64,6 +64,8 @@ def recompute_ticket_blocked_statuses(board: dict) -> None:
         elif any_skipped and all_resolved:
             t["status"] = "blocked_by_skip"
         elif t["status"] not in ("blocked", "blocked_by_skip"):
+            # Intentional: backlog tickets with unresolved dependencies are forced to
+            # `blocked` to prevent the orchestrator from dispatching them prematurely.
             t["status"] = "blocked"
 
 
@@ -84,6 +86,21 @@ def recompute_milestone_statuses(board: dict) -> None:
 def validate_board(board: dict) -> list[str]:
     errors = []
     all_tickets = get_all_tickets(board)
+
+    all_ids = [t["id"] for m in board.get("milestones", []) for t in m.get("tickets", [])]
+    seen = set()
+    for tid in all_ids:
+        if tid in seen:
+            errors.append(f"Duplicate ticket ID: {tid}")
+        seen.add(tid)
+
+    milestone_ids = [m["id"] for m in board.get("milestones", [])]
+    seen_m = set()
+    for mid in milestone_ids:
+        if mid in seen_m:
+            errors.append(f"Duplicate milestone ID: {mid}")
+        seen_m.add(mid)
+
     ticket_ids = {t["id"] for t in all_tickets}
 
     for field in ("spec", "title", "created", "status"):

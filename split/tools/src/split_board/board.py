@@ -5,9 +5,15 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 from pathlib import Path
+from typing import NoReturn
 
 import yaml
+
+
+class BoardError(Exception):
+    """Raised for board-level errors instead of calling sys.exit."""
 
 # --- Constants ---
 
@@ -37,9 +43,9 @@ VALID_TRANSITIONS = {
 
 # --- Output ---
 
-def error(msg: str) -> None:
+def error(msg: str) -> NoReturn:
     print(f"ERROR: {msg}", file=sys.stderr)
-    sys.exit(1)
+    raise BoardError(msg)
 
 
 def success(msg: str) -> None:
@@ -68,16 +74,25 @@ def slugify(title: str) -> str:
 
 def load_board(board_path: Path) -> dict:
     with open(board_path) as f:
-        return yaml.safe_load(f)
+        data = yaml.safe_load(f)
+    if not isinstance(data, dict):
+        error(f"Board file is empty or corrupt: {board_path}")
+    return data
+
+
+def _atomic_write(path: Path, content: str) -> None:
+    dir_ = path.parent
+    with tempfile.NamedTemporaryFile("w", dir=dir_, delete=False, suffix=".tmp") as f:
+        f.write(content)
+        tmp_path = f.name
+    os.replace(tmp_path, path)
 
 
 def save_board(board: dict, board_path: Path) -> None:
-    with open(board_path, "w") as f:
-        yaml.dump(board, f, default_flow_style=False, sort_keys=False)
+    _atomic_write(board_path, yaml.dump(board, default_flow_style=False, sort_keys=False))
     metrics = compute_metrics(board)
     metrics_path = board_path.parent / "metrics.yaml"
-    with open(metrics_path, "w") as f:
-        yaml.dump(metrics, f, default_flow_style=False, sort_keys=False)
+    _atomic_write(metrics_path, yaml.dump(metrics, default_flow_style=False, sort_keys=False))
 
 
 # --- Ticket Helpers ---
