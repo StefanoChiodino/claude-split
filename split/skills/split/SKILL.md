@@ -81,12 +81,23 @@ After spec approval, classify the task:
 - **Medium** — 2–5 tickets, single milestone. Create one milestone and assign all tickets to it.
 - **Complex** — 6+ tickets or changes spanning multiple concerns. Group into multiple milestones with dependency ordering.
 
+### Milestone naming
+
+Milestones are **progression gates**, not categories. A milestone name must describe a state of the system that is true once all its tickets are done — something you can point to and say "we can now do X."
+
+**Good:** "Foundation stable", "Core loop working end-to-end", "Plugin publishable"
+**Bad:** "Critical fixes", "Personas", "Hooks", "Documentation" — these are categories of work, not capabilities unlocked
+
+Each milestone answers: *what can we do or ship when this is complete that we couldn't before?*
+
+The Tech Lead's spec review should reject milestones that are just categories.
+
 ### Ticket Creation
 
 Create milestones and tickets using the CLI:
 
 ```bash
-split-board milestone add --title "Design & core implementation"
+split-board milestone add --title "Foundation stable"
 split-board ticket add --title "Design approach" --persona tech-lead \
   --acceptance-criteria "Approach doc covering..." --produces approach-doc \
   --milestone M001
