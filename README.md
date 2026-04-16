@@ -44,6 +44,22 @@ You: Add rate limiting to the API
 [Board created, tickets dispatched across personas]
 ```
 
+## Updating
+
+Plugins are pinned to the cached version when installed — Claude Code does not auto-update them. To get the latest version:
+
+```sh
+claude plugin marketplace update StefanoChiodino/claude-split
+```
+
+Or do a clean reinstall:
+
+```sh
+claude plugin uninstall split
+rm -rf ~/.claude/plugins/cache/claude-split
+claude plugin install split@claude-split
+```
+
 ## Local development
 
 Clone the repo and install from the local path:
