@@ -307,19 +307,30 @@ class DashboardApp(App):
 
     def _find_specs(self) -> None:
         active = self.base_dir / "active"
-        if not active.is_dir():
-            self.specs = []
-            return
         found = []
-        for name in sorted(os.listdir(active)):
-            d = active / name
-            if d.is_dir() and (d / "board.yaml").exists():
-                if (
-                    self.spec_filter is None
-                    or name == self.spec_filter
-                    or name.startswith(self.spec_filter + "-")
-                ):
-                    found.append(d)
+        if active.is_dir():
+            for name in sorted(os.listdir(active)):
+                d = active / name
+                if d.is_dir() and (d / "board.yaml").exists():
+                    if (
+                        self.spec_filter is None
+                        or name == self.spec_filter
+                        or name.startswith(self.spec_filter + "-")
+                    ):
+                        found.append(d)
+
+        # Fallback: if no active specs, show the most recently modified archived spec
+        if not found and self.spec_filter is None:
+            archive = self.base_dir / "archive"
+            if archive.is_dir():
+                archived = [
+                    d for name in os.listdir(archive)
+                    if (d := archive / name).is_dir() and (d / "board.yaml").exists()
+                ]
+                if archived:
+                    archived.sort(key=lambda d: (d / "board.yaml").stat().st_mtime, reverse=True)
+                    found = [archived[0]]
+
         self.specs = found
         if self.spec_idx >= len(found):
             self.spec_idx = 0
@@ -348,7 +359,7 @@ class DashboardApp(App):
         sd = self._spec_dir
         if not sd:
             self.query_one("#spec-header").update(
-                Text(" No active specs found.", style="bold red")
+                Text(" No specs found.", style="bold red")
             )
             for wid in (
                 "#board-content",
