@@ -1,7 +1,7 @@
 spec: S001
 title: Thorough review of claude-split plugin and personas
 created: '2026-04-14T22:15:43.816413+00:00'
-status: active
+status: archived
 milestones:
 - id: M001
   title: Research & Review

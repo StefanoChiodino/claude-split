@@ -5,11 +5,17 @@ import os
 import pytest
 import yaml
 
-from split_board.cli import main
-from split_board.board import slugify, append_log
+from split_board.cli import main, build_parser
+from split_board.board import slugify, append_log, BoardError
 
 
 # --- Helpers ---
+
+def _run(argv: list[str]) -> None:
+    """Run a CLI command without the BoardError catch, so BoardError propagates."""
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    args.func(args)
 
 def _init_spec(tmp_path, title="Test"):
     main(["--base-dir", str(tmp_path), "spec", "init", "--title", title])
@@ -186,10 +192,12 @@ def test_ticket_add_with_completed_dependency_starts_backlog(tmp_path):
     assert tickets[1]["status"] == "backlog"
 
 
-def test_ticket_add_rejects_missing_dependency(tmp_path):
+def test_ticket_add_rejects_missing_dependency(tmp_path, capsys):
     base, _ = _init_spec_with_milestone(tmp_path)
-    with pytest.raises(SystemExit):
-        main(["--base-dir", str(base), "ticket", "add", "--title", "X", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001", "--depends-on", "T999"])
+    with pytest.raises(BoardError, match="T999"):
+        _run(["--base-dir", str(base), "ticket", "add", "--title", "X", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001", "--depends-on", "T999"])
+    err = capsys.readouterr().err
+    assert "Dependency T999 not found" in err
 
 
 def test_ticket_add_requires_approval_flag(tmp_path):
@@ -209,12 +217,14 @@ def test_ticket_update_to_in_progress(tmp_path):
     assert board["milestones"][0]["tickets"][0]["status"] == "in_progress"
 
 
-def test_ticket_update_to_done_requires_artifact(tmp_path):
+def test_ticket_update_to_done_requires_artifact(tmp_path, capsys):
     base, _ = _init_spec_with_milestone(tmp_path)
     main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
     main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
-    with pytest.raises(SystemExit):
-        main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done"])
+    with pytest.raises(BoardError):
+        _run(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done"])
+    err = capsys.readouterr().err
+    assert "At least one artifact is required" in err
 
 
 def test_ticket_update_to_done_with_artifact(tmp_path):
@@ -228,12 +238,15 @@ def test_ticket_update_to_done_with_artifact(tmp_path):
     assert "out.md" in tickets[0]["artifacts"]
 
 
-def test_ticket_update_in_progress_requires_deps_done(tmp_path):
+def test_ticket_update_in_progress_requires_deps_done(tmp_path, capsys):
     base, _ = _init_spec_with_milestone(tmp_path)
     main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
     main(["--base-dir", str(base), "ticket", "add", "--title", "B", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001", "--depends-on", "T001"])
-    with pytest.raises(SystemExit):
-        main(["--base-dir", str(base), "ticket", "update", "--id", "T002", "--status", "in_progress"])
+    with pytest.raises(BoardError):
+        _run(["--base-dir", str(base), "ticket", "update", "--id", "T002", "--status", "in_progress"])
+    err = capsys.readouterr().err
+    assert "Cannot transition T002" in err
+    assert "blocked" in err
 
 
 def test_ticket_update_auto_unblocks_downstream(tmp_path):
@@ -260,8 +273,8 @@ def test_ticket_update_pending_approval_requires_flag(tmp_path):
     base, _ = _init_spec_with_milestone(tmp_path)
     main(["--base-dir", str(base), "ticket", "add", "--title", "Normal", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
     main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
-    with pytest.raises(SystemExit):
-        main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "pending_approval", "--artifact", "a.md"])
+    with pytest.raises(BoardError):
+        _run(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "pending_approval", "--artifact", "a.md"])
 
 
 def test_ticket_update_pending_approval_can_return_to_in_progress(tmp_path):
@@ -311,8 +324,8 @@ def test_ticket_add_dependency_rejects_cycle(tmp_path):
     base, _ = _init_spec_with_milestone(tmp_path)
     main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
     main(["--base-dir", str(base), "ticket", "add", "--title", "B", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001", "--depends-on", "T001"])
-    with pytest.raises(SystemExit):
-        main(["--base-dir", str(base), "ticket", "add-dependency", "--id", "T001", "--depends-on", "T002"])
+    with pytest.raises(BoardError):
+        _run(["--base-dir", str(base), "ticket", "add-dependency", "--id", "T001", "--depends-on", "T002"])
 
 
 def test_ticket_remove_dependency(tmp_path):
@@ -357,8 +370,8 @@ def test_followup_two_level_limit(tmp_path):
     base, _ = _init_spec_with_milestone(tmp_path)
     main(["--base-dir", str(base), "ticket", "add", "--title", "Root", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
     main(["--base-dir", str(base), "followup", "create", "--parent", "T001", "--persona", "dev", "--title", "Child", "--acceptance-criteria", "ac", "--produces", "impl"])
-    with pytest.raises(SystemExit):
-        main(["--base-dir", str(base), "followup", "create", "--parent", "T001a", "--persona", "dev", "--title", "Grandchild", "--acceptance-criteria", "ac", "--produces", "impl"])
+    with pytest.raises(BoardError):
+        _run(["--base-dir", str(base), "followup", "create", "--parent", "T001a", "--persona", "dev", "--title", "Grandchild", "--acceptance-criteria", "ac", "--produces", "impl"])
 
 
 def test_followup_in_same_milestone(tmp_path):
@@ -478,8 +491,8 @@ def test_spec_disambiguation_single(tmp_path):
 def test_spec_disambiguation_multiple_requires_spec(tmp_path):
     main(["--base-dir", str(tmp_path), "spec", "init", "--title", "Alpha"])
     main(["--base-dir", str(tmp_path), "spec", "init", "--title", "Beta"])
-    with pytest.raises(SystemExit):
-        main(["--base-dir", str(tmp_path), "milestone", "add", "--title", "M1"])
+    with pytest.raises(BoardError):
+        _run(["--base-dir", str(tmp_path), "milestone", "add", "--title", "M1"])
 
 
 def test_spec_disambiguation_with_spec_flag(tmp_path):
@@ -707,3 +720,222 @@ def test_smoke_spec_init_and_status(tmp_path):
     )
     assert result.returncode == 0
     assert "Smoke" in result.stdout
+
+
+# --- T007: cmd_dashboard path resolution ---
+
+def test_cmd_dashboard_resolves_dashboard_script(tmp_path):
+    from unittest.mock import patch, MagicMock
+    import importlib.resources
+
+    # Create a minimal valid args namespace
+    args = MagicMock()
+    args.base_dir = str(tmp_path)
+    args.spec = None
+
+    mock_script_path = MagicMock()
+    mock_script_path.__str__ = lambda self: "/fake/path/to/_dashboard.py"
+    mock_script_path.__fspath__ = lambda self: "/fake/path/to/_dashboard.py"
+
+    mock_files = MagicMock()
+    mock_ref = MagicMock()
+    mock_files.return_value.__truediv__ = MagicMock(return_value=mock_ref)
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+
+    from split_board.commands import cmd_dashboard
+
+    with patch("split_board.commands.shutil.which", return_value="/usr/bin/uv"), \
+         patch("importlib.resources.files") as mock_ir_files, \
+         patch("importlib.resources.as_file") as mock_as_file, \
+         patch("split_board.commands.subprocess.run", return_value=mock_result) as mock_run, \
+         patch("split_board.commands.sys.exit"):
+
+        mock_ir_files.return_value.__truediv__ = MagicMock(return_value=mock_ref)
+        mock_as_file.return_value.__enter__ = MagicMock(return_value=mock_script_path)
+        mock_as_file.return_value.__exit__ = MagicMock(return_value=False)
+
+        cmd_dashboard(args)
+
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args[0][0]
+        # Verify the Python interpreter (uv) is used
+        assert call_args[0] == "/usr/bin/uv"
+        # Verify the script path resolves to _dashboard.py
+        assert "_dashboard.py" in call_args[2]
+
+
+# --- T007: Dashboard module smoke test ---
+
+def test_dashboard_module_imports_and_has_expected_exports():
+    pytest.importorskip("rich", reason="rich not installed (dashboard inline dep)")
+    pytest.importorskip("textual", reason="textual not installed (dashboard inline dep)")
+    import split_board._dashboard as dashboard
+
+    # Module imports without error (implicit)
+    # DashboardApp class exists
+    assert hasattr(dashboard, "DashboardApp")
+    assert isinstance(dashboard.DashboardApp, type)
+
+    # ticket_card is a callable pure data function
+    assert callable(dashboard.ticket_card)
+
+    # COLUMN_INDEX is the status-to-column mapping
+    assert hasattr(dashboard, "COLUMN_INDEX")
+    assert isinstance(dashboard.COLUMN_INDEX, dict)
+    assert "backlog" in dashboard.COLUMN_INDEX
+    assert "done" in dashboard.COLUMN_INDEX
+
+
+def test_dashboard_ticket_card_returns_renderable():
+    pytest.importorskip("rich", reason="rich not installed (dashboard inline dep)")
+    pytest.importorskip("textual", reason="textual not installed (dashboard inline dep)")
+    from split_board._dashboard import ticket_card
+
+    ticket = {
+        "id": "T001",
+        "title": "Test ticket",
+        "persona": "dev",
+        "status": "backlog",
+    }
+    result = ticket_card(ticket)
+    # ticket_card returns a Rich Text object
+    assert result is not None
+    text_str = str(result)
+    assert "T001" in text_str
+    assert "dev" in text_str
+
+
+# --- T007: Cycle detection tests ---
+
+def test_has_cycle_detects_cycle():
+    from split_board.validation import has_cycle
+
+    # A depends on B, B depends on A -> cycle
+    tickets = [
+        {"id": "T001", "depends_on": ["T002"]},
+        {"id": "T002", "depends_on": ["T001"]},
+    ]
+    assert has_cycle(tickets, "", []) is True
+
+
+def test_has_cycle_no_cycle():
+    from split_board.validation import has_cycle
+
+    # A -> B -> C, linear chain, no cycle
+    tickets = [
+        {"id": "T001", "depends_on": []},
+        {"id": "T002", "depends_on": ["T001"]},
+        {"id": "T003", "depends_on": ["T002"]},
+    ]
+    assert has_cycle(tickets, "", []) is False
+
+
+# --- T007: spec list --status filtering ---
+
+def test_spec_list_status_active_filter(tmp_path, capsys):
+    main(["--base-dir", str(tmp_path), "spec", "init", "--title", "Active One"])
+    main(["--base-dir", str(tmp_path), "spec", "init", "--title", "To Archive"])
+    main(["--base-dir", str(tmp_path), "spec", "archive", "--spec", "S002"])
+
+    main(["--base-dir", str(tmp_path), "spec", "list", "--status", "active"])
+    out = capsys.readouterr().out
+    assert "Active One" in out
+    assert "To Archive" not in out
+
+
+def test_spec_list_status_archived_filter(tmp_path, capsys):
+    main(["--base-dir", str(tmp_path), "spec", "init", "--title", "Active One"])
+    main(["--base-dir", str(tmp_path), "spec", "init", "--title", "To Archive"])
+    main(["--base-dir", str(tmp_path), "spec", "archive", "--spec", "S002"])
+
+    main(["--base-dir", str(tmp_path), "spec", "list", "--status", "archived"])
+    out = capsys.readouterr().out
+    assert "To Archive" in out
+    assert "Active One" not in out
+
+
+# --- T007: resolve_spec_dir archive fallback ---
+
+def test_resolve_spec_dir_finds_archived_spec(tmp_path):
+    main(["--base-dir", str(tmp_path), "spec", "init", "--title", "Will Archive"])
+    main(["--base-dir", str(tmp_path), "milestone", "add", "--title", "M1"])
+    main(["--base-dir", str(tmp_path), "ticket", "add", "--title", "A",
+          "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl",
+          "--milestone", "M001"])
+    main(["--base-dir", str(tmp_path), "spec", "archive", "--spec", "S001"])
+
+    # Accessing status on the archived spec via --spec should not raise
+    main(["--base-dir", str(tmp_path), "status", "--spec", "S001"])
+
+
+# --- T007: ticket update no-op case ---
+
+def test_ticket_update_noop_leaves_board_unchanged(tmp_path):
+    base, spec_dir = _init_spec_with_milestone(tmp_path)
+    main(["--base-dir", str(base), "ticket", "add", "--title", "A",
+          "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl",
+          "--milestone", "M001"])
+
+    board_before = _load(spec_dir)
+    ticket_before = board_before["milestones"][0]["tickets"][0].copy()
+
+    # Update with only --id, no other flags
+    main(["--base-dir", str(base), "ticket", "update", "--id", "T001"])
+
+    board_after = _load(spec_dir)
+    ticket_after = board_after["milestones"][0]["tickets"][0]
+
+    assert ticket_after["status"] == "backlog"
+    assert ticket_after["status"] == ticket_before["status"]
+    assert ticket_after["artifacts"] == ticket_before["artifacts"]
+    assert ticket_after["persona"] == ticket_before["persona"]
+
+
+# --- T007: Error message content assertions ---
+
+def test_load_board_empty_file_reports_empty_or_corrupt(tmp_path):
+    base, spec_dir = _init_spec(tmp_path)
+    board_path = spec_dir / "board.yaml"
+    # Write an empty file
+    board_path.write_text("")
+
+    with pytest.raises(BoardError, match="empty or corrupt"):
+        _run(["--base-dir", str(base), "status"])
+
+
+def test_validate_catches_duplicate_ticket_ids(tmp_path):
+    base, spec_dir = _init_spec_with_milestone(tmp_path)
+    main(["--base-dir", str(base), "ticket", "add", "--title", "A",
+          "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl",
+          "--milestone", "M001"])
+
+    # Manually inject a duplicate ticket ID into the board YAML
+    board = _load(spec_dir)
+    duplicate_ticket = {
+        "id": "T001",
+        "title": "Duplicate",
+        "persona": "dev",
+        "status": "backlog",
+        "depends_on": [],
+        "acceptance_criteria": "ac",
+        "produces": "impl",
+        "requires_approval": False,
+        "artifacts": [],
+        "follow_ups": [],
+        "created_by": None,
+        "decisions": [],
+    }
+    board["milestones"][0]["tickets"].append(duplicate_ticket)
+    with open(spec_dir / "board.yaml", "w") as f:
+        yaml.dump(board, f, default_flow_style=False, sort_keys=False)
+
+    # validate exits with sys.exit(1) when errors are found (not BoardError)
+    with pytest.raises(SystemExit):
+        main(["--base-dir", str(base), "validate"])
+
+    # Also verify the error content directly via validate_board
+    from split_board.validation import validate_board
+    errors = validate_board(board)
+    assert any("Duplicate" in e for e in errors)

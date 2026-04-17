@@ -1,0 +1,230 @@
+spec: S002
+title: Fix all findings from plugin review
+created: '2026-04-15T17:30:17.724500+00:00'
+status: archived
+milestones:
+- id: M001
+  title: Critical fixes
+  status: done
+  tickets:
+  - id: T001
+    title: BoardError refactor
+    persona: senior-dev
+    status: done
+    depends_on: []
+    acceptance_criteria: 'In board.py: define BoardError(Exception), change error()
+      to raise BoardError instead of sys.exit(1), keep stderr print, annotate -> NoReturn.
+      In cli.py:main() wrap args.func(args) in try/except BoardError, print error,
+      sys.exit(1). cmd_validate keeps its own sys.exit(1). In tests: change all pytest.raises(SystemExit)
+      to pytest.raises(BoardError), import BoardError, add capsys assertions on error
+      messages for at least 3 key error paths. All tests pass.'
+    produces: board.py
+    requires_approval: false
+    tokens_used: 47736
+    artifacts:
+    - split/tools/src/split_board/board.py
+    follow_ups: []
+    created_by: null
+    decisions: []
+  - id: T002
+    title: SKILL.md worktree isolation fix
+    persona: tech-lead
+    status: done
+    depends_on: []
+    acceptance_criteria: "Replace EnterWorktree pseudo-code note with accurate description\
+      \ of the real EnterWorktree tool. Add explicit instruction: after EnterWorktree\
+      \ the session CWD is the worktree \u2014 all agent dispatch prompts must derive\
+      \ paths from CWD, never from the original repo root. Add note explaining the\
+      \ isolation bug: agents must not receive hardcoded main-repo absolute paths.\
+      \ Verify outcome handling branches (completed/failed/needs_input/already_satisfied)\
+      \ are complete and correct."
+    produces: split/skills/split/SKILL.md
+    requires_approval: false
+    tokens_used: 19180
+    artifacts:
+    - split/skills/split/SKILL.md
+    follow_ups: []
+    created_by: null
+    decisions: []
+- id: M002
+  title: Personas
+  status: done
+  tickets:
+  - id: T003
+    title: Fix all persona definitions
+    persona: senior-dev
+    status: done
+    depends_on: []
+    acceptance_criteria: 'For all 11 agent files under split/agents/: (1) Replace
+      @agents/shared/core-operating-principle.md line with inlined content from that
+      file. (2) Fix ''ask another persona'' instruction to route via needs_input instead.
+      (3) Add Reporting Outcomes section with completed/already_satisfied/failed/needs_input
+      protocol. (4) senior-dev: effort medium->high. (5) technical-writer: effort
+      low->medium. (6) security-reviewer: add Write to tools. (7) sme: add Edit to
+      tools. (8) tech-lead: remove Agent from tools. (9) senior-dev, test-writer,
+      technical-writer, ux-designer, devops, security-reviewer: add isolation: worktree
+      to frontmatter. Update shared/core-operating-principle.md with the fixed instruction
+      too.'
+    produces: split/agents
+    requires_approval: false
+    tokens_used: 31571
+    artifacts:
+    - split/agents
+    follow_ups: []
+    created_by: null
+    decisions: []
+- id: M003
+  title: Orchestrator
+  status: done
+  tickets:
+  - id: T004
+    title: Orchestrator improvements + --tokens-used CLI flag
+    persona: senior-dev
+    status: done
+    depends_on:
+    - T001
+    acceptance_criteria: 'CLI (cli.py + commands.py): add optional --tokens-used INT
+      argument to ticket update; store as tokens_used in ticket dict. SKILL.md: update
+      ticket update examples to include --tokens-used. Add split-board ticket update
+      --status in_progress step before every agent dispatch in Phase 3. Rewrite complexity
+      classification: Medium=2-5 tickets single milestone, Complex=6+ tickets or cross-cutting,
+      multiple milestones. Add handler for ''n'' response to Continue prompt: summarise
+      remaining work and stop. Add Phase 5 merge conflict guidance.'
+    produces: split/skills/split/SKILL.md
+    requires_approval: false
+    tokens_used: 25603
+    artifacts:
+    - split/skills/split/SKILL.md
+    follow_ups: []
+    created_by: null
+    decisions: []
+- id: M004
+  title: Hooks and plugin structure
+  status: done
+  tickets:
+  - id: T005
+    title: Hooks and plugin structure fixes
+    persona: senior-dev
+    status: done
+    depends_on:
+    - T003
+    acceptance_criteria: 'hooks.json: add PermissionRequest hook entry pointing to
+      new approve-split-board.sh; add timeout:10 to all hooks; remove async:false.
+      New approve-split-board.sh: auto-approve split-board commands via PermissionRequest,
+      print consent message, fallback gracefully if jq absent. install-cli.sh: add
+      visible consent message before any settings write; use mktemp for temp files;
+      fix grep pattern to match exact Bash(split-board:*) string. guard-board.sh:
+      use jq to extract file_path field when available, fall back to current glob
+      matching. marketplace.json: remove duplicate version/author, move metadata.description
+      to top-level, add $schema field. Flatten agents: move split/agents/<name>/<name>.md
+      to split/agents/<name>.md, delete empty subdirs. Move split/agents/shared/ to
+      split/prompts/.'
+    produces: split/hooks
+    requires_approval: false
+    tokens_used: 16432
+    artifacts:
+    - split/hooks
+    follow_ups: []
+    created_by: null
+    decisions: []
+- id: M005
+  title: CLI correctness
+  status: done
+  tickets:
+  - id: T006
+    title: CLI correctness fixes
+    persona: senior-dev
+    status: done
+    depends_on:
+    - T001
+    acceptance_criteria: "board.py load_board: guard against yaml.safe_load returning\
+      \ None \u2014 call error() if result is not a dict. board.py save_board: use\
+      \ atomic write pattern (NamedTemporaryFile + os.replace) for both board.yaml\
+      \ and metrics.yaml writes \u2014 do NOT use fcntl.flock on a truncating open.\
+      \ validation.py validate_board: check for duplicate ticket IDs (not just set\
+      \ dedup) and duplicate milestone IDs, add to errors list. validation.py recompute_ticket_blocked_statuses:\
+      \ add explanatory comment about intentional backlog->blocked override."
+    produces: split/tools/src/split_board/board.py
+    requires_approval: false
+    tokens_used: 18853
+    artifacts:
+    - split/tools/src/split_board/board.py
+    follow_ups: []
+    created_by: null
+    decisions: []
+- id: M006
+  title: Test coverage
+  status: done
+  tickets:
+  - id: T007
+    title: Test coverage
+    persona: test-writer
+    status: done
+    depends_on:
+    - T006
+    acceptance_criteria: "All using BoardError not SystemExit. Add: (1) cmd_dashboard\
+      \ test mocking importlib.resources.files and subprocess.run, verifying correct\
+      \ script path. (2) Dashboard module smoke test: import _dashboard, test at least\
+      \ 2 pure data functions. (3) Cycle detection: test has_cycle with cyclic board\
+      \ (A->B->A) and acyclic (A->B->C). (4) spec list --status filtering: create\
+      \ specs in different states, verify filter. (5) resolve_spec_dir archive fallback:\
+      \ archive a spec, verify it resolves. (6) ticket update no-op: call with only\
+      \ --id, verify no error and board unchanged. (7) Error message assertions: for\
+      \ invalid transition, missing dependency, and empty YAML \u2014 verify error\
+      \ message content with capsys, not just exception type. All tests pass."
+    produces: tests/test_split_board.py
+    requires_approval: false
+    tokens_used: 58068
+    artifacts:
+    - tests/test_split_board.py
+    follow_ups:
+    - T007a
+    created_by: null
+    decisions: []
+  - id: T007a
+    title: 'Dashboard: inline persona on ticket card + nicer display names'
+    persona: senior-dev
+    status: done
+    depends_on:
+    - T007
+    acceptance_criteria: "In _dashboard.py ticket_card(): (1) Show persona inline\
+      \ with ticket ID: 'T006 \u2022 Senior Dev' on one line, not persona on its own\
+      \ line below. (2) Map persona slugs to display names: senior-dev->Senior Dev,\
+      \ tech-lead->Tech Lead, test-writer->Test Writer, code-reviewer->Code Reviewer,\
+      \ ux-designer->UX Designer, technical-writer->Technical Writer, security-reviewer->Security\
+      \ Reviewer, sme->SME, devops->DevOps, verifier->Verifier, researcher->Researcher.\
+      \ Apply same mapping anywhere else in the dashboard that renders persona names."
+    produces: split/tools/src/split_board/_dashboard.py
+    requires_approval: false
+    tokens_used: 15208
+    artifacts:
+    - split/tools/src/split_board/_dashboard.py
+    follow_ups: []
+    created_by: T007
+    decisions: []
+- id: M007
+  title: Documentation
+  status: done
+  tickets:
+  - id: T008
+    title: Documentation fixes
+    persona: technical-writer
+    status: done
+    depends_on: []
+    acceptance_criteria: "README: (1) Fix Local development section \u2014 show local\
+      \ path install (claude plugin install --source ./split) not marketplace commands.\
+      \ (2) Verify install syntax split@claude-split against Claude Code docs; if\
+      \ unverifiable add a caveat. (3) Fix uv prereq: change 'installed automatically'\
+      \ to 'must be pre-installed'. (4) Add Quick start section with 3-5 line sample\
+      \ interaction showing /split invocation. (5) Update dashboard PATH caveat: test\
+      \ whether bin/split-board works when plugin is installed; update accordingly.\
+      \ (6) Add known limitations section noting permission prompts are expected for\
+      \ tool use (Claude Code plugin restriction) and that worktree isolation is git-only."
+    produces: README.md
+    requires_approval: false
+    tokens_used: 9956
+    artifacts:
+    - README.md
+    follow_ups: []
+    created_by: null
+    decisions: []

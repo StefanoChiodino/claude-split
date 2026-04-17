@@ -3,7 +3,7 @@
 import argparse
 import sys
 
-from .board import DEFAULT_BASE_DIR, VALID_TICKET_STATUSES
+from .board import DEFAULT_BASE_DIR, VALID_TICKET_STATUSES, BoardError
 from .commands import (
     cmd_dashboard,
     cmd_decision_add,
@@ -90,6 +90,7 @@ def build_parser() -> argparse.ArgumentParser:
     tk_update_p.add_argument("--id", required=True)
     tk_update_p.add_argument("--status", choices=VALID_TICKET_STATUSES)
     tk_update_p.add_argument("--artifact", action="append", dest="artifacts")
+    tk_update_p.add_argument("--tokens-used", type=int, default=None)
     tk_update_p.add_argument("--persona")
     tk_update_p.add_argument("--spec")
     tk_update_p.set_defaults(func=cmd_ticket_update)
@@ -161,4 +162,8 @@ def main(argv: list[str] | None = None) -> None:
     if not hasattr(args, "func"):
         parser.print_help()
         sys.exit(1)
-    args.func(args)
+    try:
+        args.func(args)
+    except BoardError as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)

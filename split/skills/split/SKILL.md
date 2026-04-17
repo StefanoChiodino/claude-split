@@ -30,13 +30,15 @@ split-board spec list --status active
 
 ## Phase 1: Git Worktree
 
-Every `/split` invocation creates a git worktree. All work happens in isolation.
+Every `/split` invocation creates a git worktree using the Claude Code `EnterWorktree` tool. All work happens in isolation.
 
 ```
 EnterWorktree(name: "split-SXXX")
 ```
 
 If resuming an existing spec, switch to its existing worktree instead.
+
+After EnterWorktree, the session CWD becomes the worktree path. All agent dispatch prompts MUST derive file paths from this CWD — use relative paths or capture `$PWD`. Never include hardcoded paths to the original repo root in agent prompts. This ensures agents write files into the worktree, not the user's working tree.
 
 ## Phase 2: Spec
 
@@ -76,15 +78,26 @@ If resuming an existing spec, switch to its existing worktree instead.
 
 After spec approval, classify the task:
 
-- **Medium** — 2-3 tickets, a few personas. No milestones, flat ticket list.
-- **Complex** — Multiple personas, dependencies between tickets. Group into milestones.
+- **Medium** — 2–5 tickets, single milestone. Create one milestone and assign all tickets to it.
+- **Complex** — 6+ tickets or changes spanning multiple concerns. Group into multiple milestones with dependency ordering.
+
+### Milestone naming
+
+Milestones are **progression gates**, not categories. A milestone name must describe a state of the system that is true once all its tickets are done — something you can point to and say "we can now do X."
+
+**Good:** "Foundation stable", "Core loop working end-to-end", "Plugin publishable"
+**Bad:** "Critical fixes", "Personas", "Hooks", "Documentation" — these are categories of work, not capabilities unlocked
+
+Each milestone answers: *what can we do or ship when this is complete that we couldn't before?*
+
+The Tech Lead's spec review should reject milestones that are just categories.
 
 ### Ticket Creation
 
 Create milestones and tickets using the CLI:
 
 ```bash
-split-board milestone add --title "Design & core implementation"
+split-board milestone add --title "Foundation stable"
 split-board ticket add --title "Design approach" --persona tech-lead \
   --acceptance-criteria "Approach doc covering..." --produces approach-doc \
   --milestone M001
@@ -128,7 +141,12 @@ Everything else — running code, running tests, editing files, installing depen
 
 2. **Find unblocked tickets** — tickets in `backlog` status whose dependencies are all `done`.
 
-3. **Dispatch persona-agent** for each unblocked ticket. Tickets within a milestone that share no dependencies can be dispatched in parallel using multiple Agent calls.
+3. **Mark ticket in-progress and dispatch persona-agent** for each unblocked ticket. Tickets within a milestone that share no dependencies can be dispatched in parallel using multiple Agent calls.
+
+   Before dispatching, update the ticket status:
+   ```bash
+   split-board ticket update --id TXXX --status in_progress
+   ```
 
    The agent prompt must include:
    - The ticket's acceptance criteria
@@ -145,13 +163,13 @@ Everything else — running code, running tests, editing files, installing depen
    - **`completed`** — Agent did the work. Update the ticket:
      ```bash
      split-board ticket update --id T001 --status done \
-       --artifact <file-path>
+       --tokens-used <tokens> --artifact <file-path>
      ```
 
    - **`already_satisfied`** — Acceptance criteria were already met. Mark done with the evidence files as artifacts:
      ```bash
      split-board ticket update --id T001 --status done \
-       --artifact <evidence-file>
+       --tokens-used <tokens> --artifact <evidence-file>
      ```
      Log: "T001: already satisfied — <evidence summary>"
 
@@ -167,7 +185,7 @@ Everything else — running code, running tests, editing files, installing depen
 5. **Handle review outcomes:**
 
    - **Requires approval** — Set status to `pending_approval`. Surface output to user. Wait for approve/reject.
-     - Approved: `split-board ticket update --id T001 --status done`
+     - Approved: `split-board ticket update --id T001 --status done --tokens-used <tokens>`
      - Rejected: re-dispatch persona with feedback, ticket stays `in_progress`
 
    - **Code Reviewer finds blockers** — Create follow-up tickets:
@@ -231,7 +249,7 @@ When all milestones are complete:
 
 After the demo:
 
-1. Merge the worktree branch back to the user's branch
+1. Merge the worktree branch back to the user's branch. If conflicts arise when merging the worktree branch, resolve them in the worktree, then retry the merge.
 2. Present options:
    - Create a PR to main
    - Merge to main directly
@@ -294,4 +312,6 @@ Resuming SXXX: <title>
   Continue? [y/n]
 ```
 
-Then pick up the execution loop from the next unblocked ticket.
+If the user answers **y**, pick up the execution loop from the next unblocked ticket.
+
+If the user answers **n**: summarise remaining tickets and milestones, then stop. Do not dispatch any agents.
