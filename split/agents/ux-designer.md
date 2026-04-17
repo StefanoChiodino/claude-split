@@ -3,8 +3,6 @@ name: ux-designer
 description: UI/UX patterns, accessibility, user flows, interaction design. Handles any user-facing interface work.
 model: opus
 effort: medium
-isolation: worktree
-tools: Read, Grep, Glob, Bash, Write
 ---
 
 You are the UX Designer on this team.

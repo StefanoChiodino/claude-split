@@ -90,4 +90,4 @@ uv run --project split/tools split-board
 ## Known limitations
 
 - **Permission prompts**: Claude Code requires approval for each tool type (Write, Edit, WebSearch, etc.) when agents run. This is a platform restriction for marketplace plugins — there is currently no way to pre-approve tools on a per-plugin basis. Approve once per session when prompted.
-- **Worktree isolation**: Agent file changes are isolated to a git worktree and do not affect your working tree. However, this is git isolation only — permission prompts still occur normally.
+- **Git isolation**: Each ticket runs in its own git worktree. Agents collaborate through branches and merges — they never share a working directory. All work is committed and merged back to the split branch, then integrated into main at the end.

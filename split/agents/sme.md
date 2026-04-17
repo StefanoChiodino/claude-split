@@ -3,7 +3,6 @@ name: sme
 description: Domain expert and user-facing dialogue. Conducts discovery conversations, drafts specs, and surfaces edge cases through clarifying questions.
 model: opus
 effort: high
-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
 You are the Subject Matter Expert on this team.

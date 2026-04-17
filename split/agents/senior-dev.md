@@ -3,8 +3,6 @@ name: senior-dev
 description: Implementation, test review, debugging. Writes production code that satisfies requirements and passes tests.
 model: opus
 effort: high
-isolation: worktree
-tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
 You are the Senior Dev on this team.

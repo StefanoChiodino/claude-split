@@ -28,17 +28,15 @@ split-board spec list --status active
 - **Multiple active specs** → List them and ask which to resume (or if user wants a new one)
 - **User says "resume X" or "continue SXXX"** → Resume that specific spec
 
-## Phase 1: Git Worktree
+## Phase 1: Split Branch
 
-Every `/split` invocation creates a git worktree using the Claude Code `EnterWorktree` tool. All work happens in isolation.
+Every `/split` invocation creates a branch for the spec:
 
+```bash
+git checkout -b split/SXXX
 ```
-EnterWorktree(name: "split-SXXX")
-```
 
-If resuming an existing spec, switch to its existing worktree instead.
-
-After EnterWorktree, the session CWD becomes the worktree path. All agent dispatch prompts MUST derive file paths from this CWD — use relative paths or capture `$PWD`. Never include hardcoded paths to the original repo root in agent prompts. This ensures agents write files into the worktree, not the user's working tree.
+If resuming an existing spec, switch to its existing branch instead. The split branch is the integration point — individual ticket work happens in per-ticket worktrees that merge back here.
 
 ## Phase 2: Spec
 
@@ -148,6 +146,8 @@ Everything else — running code, running tests, editing files, installing depen
    split-board ticket update --id TXXX --status in_progress
    ```
 
+   **Each ticket runs in its own worktree.** Use `isolation: "worktree"` on the Agent tool call. This gives each agent a clean, isolated copy of the repo branching from the current split branch. Agents never share a working directory — they collaborate through git, like developers at a real company.
+
    The agent prompt must include:
    - The ticket's acceptance criteria
    - The spec (read from `spec.md`)
@@ -156,37 +156,43 @@ Everything else — running code, running tests, editing files, installing depen
    - Instruction to record what files were created/modified (these become artifacts)
    - The following preamble (include verbatim in every dispatch):
 
-     > Before starting work, check whether your acceptance criteria are already satisfied by existing code, tests, or artifacts. If they are, report "Outcome: already_satisfied" with evidence (file paths, test names, what satisfies each criterion). Otherwise, proceed with your work and end your response with one of: "Outcome: completed", "Outcome: failed — <reason>", or "Outcome: needs_input — <question>".
+     > Before starting work, check whether your acceptance criteria are already satisfied by existing code, tests, or artifacts. If they are, report "Outcome: already_satisfied" with evidence (file paths, test names, what satisfies each criterion). Otherwise, proceed with your work. When done, commit all your changes with a descriptive message referencing the ticket ID (e.g., "T001: implement rate limiter"). End your response with one of: "Outcome: completed", "Outcome: failed — <reason>", or "Outcome: needs_input — <question>".
 
 4. **Handle agent outcome** based on the outcome line in the agent's response:
 
-   - **`completed`** — Agent did the work. Update the ticket:
+   - **`completed`** — Agent committed its work in its worktree branch. Merge the ticket branch into the split branch:
+     ```bash
+     git merge <ticket-branch> --no-ff -m "Merge T001: <brief description>"
+     ```
+     If the merge has conflicts, resolve them (or dispatch an agent to resolve), then commit.
+
+     Update the ticket:
      ```bash
      split-board ticket update --id T001 --status done \
        --tokens-used <tokens> --artifact <file-path>
      ```
 
-   - **`already_satisfied`** — Acceptance criteria were already met. Mark done with the evidence files as artifacts:
+   - **`already_satisfied`** — Acceptance criteria were already met. No merge needed. Mark done with the evidence files as artifacts:
      ```bash
      split-board ticket update --id T001 --status done \
        --tokens-used <tokens> --artifact <evidence-file>
      ```
      Log: "T001: already satisfied — <evidence summary>"
 
-   - **`failed`** — Agent could not complete. Enter the failure escalation ladder (see Error Handling).
+   - **`failed`** — Agent could not complete. Enter the failure escalation ladder (see Error Handling). The failed agent's worktree is discarded (no merge).
 
    - **`needs_input`** — Agent needs a user decision. Surface the question tagged with persona and ticket ID. Record the answer:
      ```bash
      split-board decision add --ticket T001 --question "..." \
        --answered-by user --answer "..."
      ```
-     Re-dispatch the agent with the answer.
+     Re-dispatch the agent with the answer (new worktree from current split branch state).
 
 5. **Handle review outcomes:**
 
    - **Requires approval** — Set status to `pending_approval`. Surface output to user. Wait for approve/reject.
-     - Approved: `split-board ticket update --id T001 --status done --tokens-used <tokens>`
-     - Rejected: re-dispatch persona with feedback, ticket stays `in_progress`
+     - Approved: merge the ticket branch, then `split-board ticket update --id T001 --status done --tokens-used <tokens>`
+     - Rejected: discard the ticket branch, re-dispatch persona with feedback (new worktree), ticket stays `in_progress`
 
    - **Code Reviewer finds blockers** — Create follow-up tickets:
      ```bash
@@ -195,16 +201,16 @@ Everything else — running code, running tests, editing files, installing depen
        --acceptance-criteria "Mutex on counter increment" \
        --produces implementation
      ```
-     Follow-up tickets get IDs like T004a. Dispatch them before proceeding.
+     Follow-up tickets get IDs like T004a. Dispatch them before proceeding. Each follow-up gets its own worktree branching from the current split branch (which includes the merged work that's being reviewed).
 
    - **Verifier fails ticket** — Same as above: create follow-up with specific findings.
 
    - **Escalation** — If a fix ticket's review generates yet another follow-up (two levels deep), escalate to the user with both positions. The user decides.
 
-6. **Commit board state** after every ticket completion:
+6. **Commit board state** after every ticket completion (after the ticket branch merge):
    ```bash
    git add .claude/split/active/SXXX/board.yaml .claude/split/active/SXXX/metrics.yaml
-   git commit -m "T001 done: <brief description>"
+   git commit -m "board: T001 done"
    ```
 
 7. **Append to execution log** (`log.md`) after each action:
@@ -234,26 +240,41 @@ The Senior Dev can adjust tests as the interface evolves. If tests can't be writ
 
 ### Parallel Dispatch
 
-Tickets within a milestone that have no dependency relationship can be dispatched in parallel. Use multiple Agent tool calls in a single message. Only parallelize when the tickets genuinely have no data dependency.
+Tickets within a milestone that have no dependency relationship can be dispatched in parallel. Use multiple Agent tool calls in a single message, each with `isolation: "worktree"`. Since each agent works in its own worktree, parallel dispatch is safe — no shared filesystem state.
 
-## Phase 4: Demo
+When parallel agents complete, merge their branches sequentially into the split branch. If the second merge conflicts with the first, resolve before proceeding.
 
-When all milestones are complete:
+## Phase 4: Summary and Demo
 
-1. Walk the user through what was delivered
-2. Key files changed, how the pieces fit together
-3. Notable decisions made during execution
-4. If the work produced visible changes (UI, API endpoints, CLI), show them
+When all milestones are complete, always present a structured summary. Demo when the changes lend themselves to it.
 
-## Phase 5: Git Decision
+1. **Summary (always):**
+   - What was delivered — list each milestone and what it unlocked
+   - Files changed — grouped by area (e.g., "agents", "CLI", "tests"), not an exhaustive list
+   - Decisions made during execution — anything the user didn't explicitly approve (agent choices, trade-offs, scope adjustments)
+   - Anything skipped or deferred, and why
 
-After the demo:
+2. **Demo (when possible):**
+   - Run tests and show results
+   - If there's a CLI, run it and show output
+   - If there's UI, describe how to see it
+   - If the changes are purely structural (refactors, config, docs), a before/after diff snippet is sufficient
 
-1. Merge the worktree branch back to the user's branch. If conflicts arise when merging the worktree branch, resolve them in the worktree, then retry the merge.
-2. Present options:
-   - Create a PR to main
-   - Merge to main directly
-   - Keep the branch for later
+Not every feature is easy to demo — that's fine. The summary is the minimum. The point is the user should never have to dig through commits to understand what happened.
+
+## Phase 5: Commit and Integrate
+
+After the demo, all work **must** be committed and integrated into the main branch. Do not end the session with work sitting on a detached branch.
+
+1. **Commit everything.** Run `git status` on the split branch. If there are any uncommitted changes, stage and commit them. There must be zero uncommitted work.
+
+2. **Ask the user how to integrate:**
+   - **Create a PR** from `split/SXXX` to main — use `gh pr create`
+   - **Merge to main** directly — `git checkout main && git merge split/SXXX --no-ff`
+
+3. **Execute the user's choice.** Confirm the final state (PR URL, or that main now includes the work).
+
+4. **Never skip this phase.** If the session is ending (context limit, user leaving), prioritize committing and at minimum push the branch so work is preserved remotely.
 
 ## Phase 6: Archive
 
@@ -303,7 +324,7 @@ If the user wants to change requirements:
 
 ## Session Resumption
 
-On resuming an active spec, show:
+On resuming an active spec, switch to its branch (`git checkout split/SXXX`) and show:
 
 ```
 Resuming SXXX: <title>

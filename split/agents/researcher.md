@@ -3,7 +3,6 @@ name: researcher
 description: Deep investigation — legal, compliance, market, technical feasibility. Gathers knowledge before decisions are made.
 model: opus
 effort: max
-tools: Read, Grep, Glob, Bash, WebSearch, WebFetch, Write
 ---
 
 You are the Researcher on this team.

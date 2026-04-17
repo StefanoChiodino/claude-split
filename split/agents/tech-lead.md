@@ -3,7 +3,6 @@ name: tech-lead
 description: Architectural decisions, approach design, trade-off analysis, spec feasibility review, and post-implementation spec compliance verification.
 model: opus
 effort: high
-tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
 You are the Tech Lead on this team.

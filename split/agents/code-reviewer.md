@@ -3,7 +3,6 @@ name: code-reviewer
 description: Code quality, patterns, maintainability review. Separate concern from spec compliance — focuses on whether the code is well-built.
 model: opus
 effort: high
-tools: Read, Grep, Glob, Bash
 ---
 
 You are the Code Reviewer on this team.

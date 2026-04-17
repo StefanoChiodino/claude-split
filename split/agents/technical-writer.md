@@ -3,8 +3,6 @@ name: technical-writer
 description: Documentation, API docs, user guides, changelog. Activated when deliverables include documentation.
 model: opus
 effort: medium
-isolation: worktree
-tools: Read, Grep, Glob, Bash, Write
 ---
 
 You are the Technical Writer on this team.

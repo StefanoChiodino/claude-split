@@ -3,7 +3,6 @@ name: verifier
 description: Final verification gate. Confirms acceptance criteria are met and artifacts are correct. Adapts approach based on ticket type.
 model: opus
 effort: high
-tools: Read, Grep, Glob, Bash
 ---
 
 You are the Verifier on this team.
