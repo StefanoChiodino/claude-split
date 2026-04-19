@@ -15,6 +15,7 @@ from .commands import (
     cmd_spec_archive,
     cmd_spec_init,
     cmd_spec_list,
+    cmd_spec_write,
     cmd_status,
     cmd_ticket_add,
     cmd_ticket_add_dependency,
@@ -51,6 +52,11 @@ def build_parser() -> argparse.ArgumentParser:
     archive_p = spec_sub.add_parser("archive", help="Archive a spec")
     archive_p.add_argument("--spec", required=True)
     archive_p.set_defaults(func=cmd_spec_archive)
+
+    write_p = spec_sub.add_parser("write", help="Write spec content")
+    write_p.add_argument("--spec", required=True)
+    write_p.add_argument("--content", required=True)
+    write_p.set_defaults(func=cmd_spec_write)
 
     abandon_p = spec_sub.add_parser("abandon", help="Abandon a spec")
     abandon_p.add_argument("--spec", required=True)

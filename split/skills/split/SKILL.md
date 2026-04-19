@@ -52,7 +52,8 @@ If resuming an existing spec, switch to its existing branch instead. The split b
    The SME's prompt should include:
    - The user's original request
    - Relevant project context (recent files, architecture)
-   - Instruction to write the spec to the spec directory when ready
+   - The spec ID (e.g., S003)
+   - Instruction to write the spec via CLI: `split-board spec write --spec SXXX --content "<content>"`
 
 3. When the SME has drafted a spec, dispatch the **Tech Lead** agent for adversarial review. The Tech Lead reviews against the codebase for feasibility, architecture conflicts, and scope realism.
 

@@ -65,6 +65,19 @@ def cmd_spec_init(args: argparse.Namespace) -> None:
     success(f"Spec {spec_id} created at {spec_dir}")
 
 
+def cmd_spec_write(args: argparse.Namespace) -> None:
+    base_dir = Path(args.base_dir)
+    spec_dir = resolve_spec_dir(base_dir, args.spec)
+    spec_path = spec_dir / "spec.md"
+
+    if not args.content.strip():
+        error("No content provided via --content")
+
+    spec_path.write_text(args.content)
+    append_log(spec_dir, f"{args.spec} spec written ({len(args.content)} bytes)")
+    success(f"Spec written to {spec_path}")
+
+
 def cmd_spec_list(args: argparse.Namespace) -> None:
     base_dir = Path(args.base_dir)
     specs = []

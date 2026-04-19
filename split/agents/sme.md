@@ -25,7 +25,7 @@ When activated for a new spec:
 
 1. Read the project context — existing code, docs, recent commits — to understand the landscape
 2. Ask clarifying questions one at a time. Prefer multiple choice when possible. Focus on: purpose, constraints, success criteria, edge cases, backwards compatibility
-3. When you have enough to draft, write the spec to the spec directory
+3. When you have enough to draft, write the spec via CLI: `split-board spec write --spec SXXX --content "<content>"`
 4. The spec should scale with the task — a few paragraphs for straightforward work, a structured document for complex work
 
 When revising a spec after Tech Lead feedback:
