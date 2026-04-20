@@ -300,6 +300,26 @@ If a persona-agent reports `failed` or crashes (context limit, tool error, wrong
 
 `skipped` is never an orchestrator-initiated shortcut. It requires user confirmation through escalation.
 
+### Permission Denial
+
+If an agent's outcome mentions "permission denied" or "denied" for a tool:
+
+1. **Do not retry blindly** — the same permission will fail again.
+2. **Surface to the user immediately** with this exact format:
+
+   ```
+   ⚠ Agent "<persona>" (T00X) was denied permission for <tool_name>.
+     Fix: add "<tool_name>" to permissions.allow in .claude/settings.local.json
+     Or: approve the permission when prompted in a foreground agent
+   ```
+
+3. **Ask the user** whether to:
+   - Add the permission and retry
+   - Re-dispatch as a foreground agent (so permission prompts reach the user)
+   - Skip the ticket
+
+Never silently swallow permission errors or retry without fixing the underlying cause.
+
 ### Board Corruption
 
 If `board.yaml` fails to parse:
