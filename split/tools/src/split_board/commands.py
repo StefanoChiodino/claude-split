@@ -2,7 +2,6 @@
 
 import argparse
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
@@ -26,6 +25,7 @@ from .board import (
     slugify,
     success,
 )
+from ._dashboard import DashboardApp
 from .validation import (
     has_cycle,
     recompute_milestone_statuses,
@@ -304,7 +304,7 @@ def cmd_ticket_update(args: argparse.Namespace) -> None:
     # Build log message from all changes
     parts = [args.id]
     if args.status:
-        parts.append(f"{old_status}→{args.status} @{ticket['persona']}")
+        parts.append(f"{old_status} → {args.status} @{ticket['persona']}")
     if args.artifacts:
         for a in args.artifacts:
             parts.append(f"artifact: {a}")
@@ -495,23 +495,7 @@ def _print_ticket(t: dict) -> None:
 # --- Dashboard ---
 
 def cmd_dashboard(args: argparse.Namespace) -> None:
-    import importlib.resources
-
-    uv = shutil.which("uv")
-    if not uv:
-        error(
-            "uv is required for the dashboard.\n"
-            "  Install: curl -LsSf https://astral.sh/uv/install.sh | sh\n"
-            "  See: https://docs.astral.sh/uv/"
-        )
-
-    script_ref = importlib.resources.files("split_board") / "_dashboard.py"
-    with importlib.resources.as_file(script_ref) as script_path:
-        cmd = [uv, "run", str(script_path), "--base-dir", str(args.base_dir)]
-        if args.spec:
-            cmd.extend(["--spec", args.spec])
-        result = subprocess.run(cmd)
-    sys.exit(result.returncode)
+    DashboardApp(base_dir=Path(args.base_dir), spec_filter=args.spec).run()
 
 
 def cmd_validate(args: argparse.Namespace) -> None:

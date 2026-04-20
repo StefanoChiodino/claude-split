@@ -545,11 +545,11 @@ def test_milestone_done_when_all_done_or_skipped(tmp_path):
 def test_append_log_creates_entry(tmp_path):
     log_path = tmp_path / "log.md"
     log_path.write_text("")
-    append_log(tmp_path, "T001 backlog→in_progress @dev")
+    append_log(tmp_path, "T001 backlog → in_progress @dev")
     lines = log_path.read_text().strip().splitlines()
     assert len(lines) == 1
     # ISO timestamp + space + message
-    assert lines[0].endswith("T001 backlog→in_progress @dev")
+    assert lines[0].endswith("T001 backlog → in_progress @dev")
     assert "T" in lines[0][:30]  # has ISO timestamp prefix
 
 
@@ -618,7 +618,7 @@ def test_ticket_update_status_logs(tmp_path):
     main(["--base-dir", str(base), "ticket", "add", "--title", "A", "--persona", "dev", "--acceptance-criteria", "ac", "--produces", "impl", "--milestone", "M001"])
     main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
     log = (spec_dir / "log.md").read_text().strip()
-    assert "T001 backlog→in_progress @dev" in log
+    assert "T001 backlog → in_progress @dev" in log
 
 
 def test_ticket_update_done_combined_logs(tmp_path):
@@ -627,7 +627,7 @@ def test_ticket_update_done_combined_logs(tmp_path):
     main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "in_progress"])
     main(["--base-dir", str(base), "ticket", "update", "--id", "T001", "--status", "done", "--artifact", "out.md"])
     log = (spec_dir / "log.md").read_text().strip()
-    assert "T001 in_progress→done @dev artifact: out.md" in log
+    assert "T001 in_progress → done @dev artifact: out.md" in log
 
 
 def test_ticket_update_artifact_only_logs(tmp_path):
