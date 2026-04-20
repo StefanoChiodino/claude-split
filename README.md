@@ -76,10 +76,10 @@ claude plugin uninstall split
 
 ## Dashboard
 
-The `split-board` CLI is placed on PATH automatically by Claude Code's plugin `bin/` mechanism. If `split-board` is not found, run it via:
+The `split-board` CLI is installed globally on first Claude Code session via `uv tool install`. After that, it works in any terminal and any project:
 
 ```sh
-uv run --project split/tools split-board
+split-board dashboard
 ```
 
 ## Requirements
