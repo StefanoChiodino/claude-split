@@ -302,6 +302,8 @@ If a persona-agent reports `failed` or crashes (context limit, tool error, wrong
 
 ### Permission Denial
 
+Background agents cannot prompt the user for permissions — they silently deny unapproved tools. The `PermissionRequest` hook does NOT fire for background agents. Only tools listed in `permissions.allow` (in `.claude/settings.local.json` or `~/.claude/settings.json`) work.
+
 If an agent's outcome mentions "permission denied" or "denied" for a tool:
 
 1. **Do not retry blindly** — the same permission will fail again.
@@ -309,13 +311,18 @@ If an agent's outcome mentions "permission denied" or "denied" for a tool:
 
    ```
    ⚠ Agent "<persona>" (T00X) was denied permission for <tool_name>.
-     Fix: add "<tool_name>" to permissions.allow in .claude/settings.local.json
-     Or: approve the permission when prompted in a foreground agent
+
+   Background agents can only use tools listed in permissions.allow.
+   To fix, add this to .claude/settings.local.json:
+
+     { "permissions": { "allow": ["<tool_name>"] } }
+
+   Then retry the ticket.
    ```
 
 3. **Ask the user** whether to:
    - Add the permission and retry
-   - Re-dispatch as a foreground agent (so permission prompts reach the user)
+   - Re-dispatch as a foreground agent (remove `run_in_background: true` so permission prompts reach the user — but this blocks the orchestrator)
    - Skip the ticket
 
 Never silently swallow permission errors or retry without fixing the underlying cause.
