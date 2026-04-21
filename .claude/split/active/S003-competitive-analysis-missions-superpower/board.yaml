@@ -2,4 +2,94 @@ spec: S003
 title: 'Competitive analysis: Missions, Superpowers, Paperclip AI, Gastown + gap analysis'
 created: '2026-04-17T22:07:55.812585+00:00'
 status: active
-milestones: []
+milestones:
+- id: M001
+  title: Research and analysis complete
+  status: in_progress
+  tickets:
+  - id: T001
+    title: Factory Droid Missions report
+    persona: researcher
+    status: done
+    depends_on: []
+    acceptance_criteria: Report covering all 8 dimensions with substantive analysis,
+      citing specific features
+    produces: docs/competitive-analysis/factory-droid-missions.md
+    requires_approval: false
+    artifacts:
+    - docs/competitive-analysis/factory-droid-missions.md
+    follow_ups: []
+    created_by: null
+    decisions: []
+  - id: T002
+    title: Superpowers plugin report
+    persona: researcher
+    status: done
+    depends_on: []
+    acceptance_criteria: Report covering all 8 dimensions with substantive analysis,
+      citing specific features
+    produces: docs/competitive-analysis/superpowers.md
+    requires_approval: false
+    artifacts:
+    - docs/competitive-analysis/superpowers.md
+    follow_ups: []
+    created_by: null
+    decisions: []
+  - id: T003
+    title: Paperclip AI report
+    persona: researcher
+    status: done
+    depends_on: []
+    acceptance_criteria: Report covering all 8 dimensions with substantive analysis,
+      citing specific features
+    produces: docs/competitive-analysis/paperclip-ai.md
+    requires_approval: false
+    artifacts:
+    - docs/competitive-analysis/paperclip-ai.md
+    follow_ups: []
+    created_by: null
+    decisions: []
+  - id: T004
+    title: Gastown report
+    persona: researcher
+    status: done
+    depends_on: []
+    acceptance_criteria: Report covering all 8 dimensions with substantive analysis,
+      citing specific features
+    produces: docs/competitive-analysis/gastown.md
+    requires_approval: false
+    artifacts:
+    - docs/competitive-analysis/gastown.md
+    follow_ups: []
+    created_by: null
+    decisions: []
+  - id: T005
+    title: Gap analysis synthesis
+    persona: tech-lead
+    status: backlog
+    depends_on:
+    - T001
+    - T002
+    - T003
+    - T004
+    acceptance_criteria: Feature matrix + at least 3 high-value gaps with recommendations
+      + lower-priority gaps with rationale
+    produces: docs/competitive-analysis/gap-analysis.md
+    requires_approval: false
+    artifacts: []
+    follow_ups: []
+    created_by: null
+    decisions: []
+  - id: T006
+    title: Review all reports for completeness
+    persona: verifier
+    status: blocked
+    depends_on:
+    - T005
+    acceptance_criteria: All 5 reports verified against acceptance criteria
+    produces: verification-report
+    requires_approval: false
+    artifacts: []
+    follow_ups: []
+    created_by: null
+    decisions: []
