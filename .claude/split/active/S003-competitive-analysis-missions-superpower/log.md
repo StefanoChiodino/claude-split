@@ -16,3 +16,7 @@
 2026-04-20T13:56:03.989041+00:00 T002 in_progress→done @researcher artifact: docs/competitive-analysis/superpowers.md
 2026-04-20T13:56:04.051005+00:00 T003 in_progress→done @researcher artifact: docs/competitive-analysis/paperclip-ai.md
 2026-04-20T13:56:04.105016+00:00 T004 in_progress→done @researcher artifact: docs/competitive-analysis/gastown.md
+2026-04-21T13:39:59.122593+00:00 T005 backlog→in_progress @tech-lead artifact: docs/competitive-analysis/gap-analysis.md
+2026-04-21T13:41:51.618856+00:00 T005 in_progress→done @tech-lead artifact: docs/competitive-analysis/gap-analysis.md
+2026-04-21T14:53:06.208757+00:00 T006 backlog→in_progress @verifier artifact: docs/competitive-analysis/
+2026-04-21T14:58:22.204005+00:00 T006 in_progress→done @verifier artifact: docs/competitive-analysis/ tokens_used=25944

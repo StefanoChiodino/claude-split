@@ -5,7 +5,7 @@ status: active
 milestones:
 - id: M001
   title: Research and analysis complete
-  status: in_progress
+  status: done
   tickets:
   - id: T001
     title: Factory Droid Missions report
@@ -66,7 +66,7 @@ milestones:
   - id: T005
     title: Gap analysis synthesis
     persona: tech-lead
-    status: backlog
+    status: done
     depends_on:
     - T001
     - T002
@@ -76,20 +76,23 @@ milestones:
       + lower-priority gaps with rationale
     produces: docs/competitive-analysis/gap-analysis.md
     requires_approval: false
-    artifacts: []
+    artifacts:
+    - docs/competitive-analysis/gap-analysis.md
     follow_ups: []
     created_by: null
     decisions: []
   - id: T006
     title: Review all reports for completeness
     persona: verifier
-    status: blocked
+    status: done
     depends_on:
     - T005
     acceptance_criteria: All 5 reports verified against acceptance criteria
     produces: verification-report
     requires_approval: false
-    artifacts: []
+    artifacts:
+    - docs/competitive-analysis/
     follow_ups: []
     created_by: null
     decisions: []
+    tokens_used: 25944
