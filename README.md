@@ -6,20 +6,9 @@ Split assigns work to personas like SME, Tech Lead, Senior Dev, Test Writer, Cod
 
 ## Install
 
-Inside Claude:
-
-```
-/plugin marketplace add StefanoChiodino/claude-split
-/plugin install split@claude-split
-# Syntax may vary by Claude Code version — check /help if this fails
-```
-
-Or from the terminal:
-
 ```sh
 claude plugin marketplace add StefanoChiodino/claude-split
 claude plugin install split@claude-split
-# Syntax may vary by Claude Code version — check /help if this fails
 ```
 
 ## Usage
@@ -49,23 +38,24 @@ You: Add rate limiting to the API
 Plugins are pinned to the cached version when installed — Claude Code does not auto-update them. To get the latest version:
 
 ```sh
-claude plugin marketplace update StefanoChiodino/claude-split
+claude plugin update split
 ```
 
-Or do a clean reinstall:
+If that doesn't pick up changes, do a clean reinstall:
 
 ```sh
 claude plugin uninstall split
-rm -rf ~/.claude/plugins/cache/claude-split
+claude plugin marketplace update claude-split
 claude plugin install split@claude-split
 ```
 
 ## Local development
 
-Clone the repo and install from the local path:
+Clone the repo, add it as a local marketplace, then install:
 
 ```sh
-claude plugin install --source /path/to/claude-split/split
+claude plugin marketplace add /path/to/claude-split
+claude plugin install split@claude-split
 ```
 
 To uninstall:
