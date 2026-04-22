@@ -72,6 +72,8 @@ The `split-board` CLI is installed globally on first Claude Code session via `uv
 split-board dashboard
 ```
 
+![Split Board dashboard showing kanban columns and activity log](docs/dashboard-screenshot.png)
+
 ## Requirements
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code)

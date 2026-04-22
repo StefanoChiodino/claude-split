@@ -168,7 +168,7 @@ def activity_view(lines: list[str]) -> RenderableType:
     return Group(*(Text(f"  {line}") for line in reversed(lines)))
 
 
-def metrics_view(board: dict, log_mtime: float = 0) -> RenderableType:
+def metrics_view(board: dict, log_mtime: float = 0, width: int = 120) -> RenderableType:
     tickets = []
     for ms in board.get("milestones", []):
         tickets.extend(ms.get("tickets", []))
@@ -192,19 +192,14 @@ def metrics_view(board: dict, log_mtime: float = 0) -> RenderableType:
         if ms.get("tickets")
         and all(t.get("status") in ("done", "skipped") for t in ms["tickets"])
     )
-    # Line 1
-    line1 = Text("  ")
-    line1.append(f"Resolved: {resolved_tickets}/{len(tickets)}", style="bold")
-    line1.append("  \u2502  ")
-    line1.append(f"Dispatches: {dispatches}", style="bold")
-    line1.append("  \u2502  ")
-    line1.append(f"Follow-ups: {follow_ups}", style="bold")
-    line1.append("  \u2502  ")
-    line1.append(f"Questions: {user_qs}", style="bold")
 
-    # Line 2
-    line2 = Text("  ")
-    line2.append(f"Milestones: {ms_done}/{len(milestones)}", style="bold")
+    segments: list[str] = [
+        f"Resolved: {resolved_tickets}/{len(tickets)}",
+        f"Dispatches: {dispatches}",
+        f"Follow-ups: {follow_ups}",
+        f"Questions: {user_qs}",
+        f"Milestones: {ms_done}/{len(milestones)}",
+    ]
 
     created = board.get("created")
     if created:
@@ -213,8 +208,7 @@ def metrics_view(board: dict, log_mtime: float = 0) -> RenderableType:
             elapsed = datetime.now(timezone.utc) - start
             mins = max(0, int(elapsed.total_seconds() / 60))
             el = f"{mins // 60}h{mins % 60}m" if mins >= 60 else f"{mins}m"
-            line2.append("  \u2502  ")
-            line2.append(f"Elapsed: {el}", style="bold")
+            segments.append(f"Elapsed: {el}")
         except (ValueError, TypeError):
             pass
 
@@ -227,9 +221,30 @@ def metrics_view(board: dict, log_mtime: float = 0) -> RenderableType:
             ago_str = f"{ago_mins}m ago"
         else:
             ago_str = f"{ago_mins // 60}h{ago_mins % 60}m ago"
-        line2.append("  \u2502  ")
-        line2.append(f"Last activity: {ago_str}", style="bold")
+        segments.append(f"Last activity: {ago_str}")
 
+    sep = "  \u2502  "
+    single_len = 2 + sum(len(s) for s in segments) + len(sep) * (len(segments) - 1)
+
+    if single_len <= width:
+        line = Text("  ")
+        for i, seg in enumerate(segments):
+            if i > 0:
+                line.append(sep)
+            line.append(seg, style="bold")
+        return line
+
+    mid = (len(segments) + 1) // 2
+    line1 = Text("  ")
+    for i, seg in enumerate(segments[:mid]):
+        if i > 0:
+            line1.append(sep)
+        line1.append(seg, style="bold")
+    line2 = Text("  ")
+    for i, seg in enumerate(segments[mid:]):
+        if i > 0:
+            line2.append(sep)
+        line2.append(seg, style="bold")
     return Group(line1, line2)
 
 
@@ -400,7 +415,7 @@ class DashboardApp(App):
         mh.append("\u2500" * 70, style="dim")
         self.query_one("#metrics-header").update(mh)
         self.query_one("#metrics-body").update(
-            metrics_view(board, self._log_mtime)
+            metrics_view(board, self._log_mtime, width=self.size.width)
         )
 
     def _header(self, board: dict) -> Text:
